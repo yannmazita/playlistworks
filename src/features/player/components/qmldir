@@ -1,0 +1,2 @@
+module player.components
+PlaybackControls 1.0 PlaybackControls.qml

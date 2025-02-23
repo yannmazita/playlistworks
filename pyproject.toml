@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "playlistworks"
+version = "0.1.0"
+description = "Playlist-driven music player"
+authors = ["Yann Mazita <dev.mazita@gmail.com>"]
+license = "GPL3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.13,<3.14"
+pyside6 = "^6.8.2.1"
+mutagen = "^1.47.0"
+pydantic = "^2.10.6"
+pydantic-settings = "^2.8.0"
+pygobject = "^3.50.0"
+sqlalchemy = "^2.0.38"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.7"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
