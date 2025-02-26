@@ -1,11 +1,15 @@
-# src.features.tracks.services.id3
+# src.features.tracks.services.mp3
+import logging
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
 
 from src.core.types import ID3Keys
+
+logger = logging.getLogger(__name__)
 
 
 class MP3Services:
@@ -35,8 +39,13 @@ class MP3Services:
         except StopIteration:
             return False
 
-        self.__current_mp3_file = MP3(self.__current_mp3_file)
-        self.__current_mp3_tags = ID3(self.__current_file_path)
+        try:
+            self.__current_mp3_file = MP3(self.__current_file_path)
+            self.__current_mp3_tags = ID3(self.__current_file_path)
+        except Exception as e:
+            logger.error(f"Error loading {self.__current_file_path}", e, exc_info=True)
+            logger.debug("Trying next file")
+            return self.load_next_file()
 
         return True
 
@@ -50,9 +59,11 @@ class MP3Services:
 
         for frame in ID3Keys:
             try:
-                frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
-                tags[frame] = frames
-            except IndexError:
+                if frame.value:
+                    frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
+                    if frames:
+                        tags[frame] = frames
+            except (IndexError, KeyError):
                 pass
 
         return tags
@@ -87,5 +98,18 @@ class MP3Services:
         except IndexError:
             return None
 
-    def get_duration(self) -> int:
+    def get_duration(self) -> float:
+        """Get track duration in seconds"""
         return self.__current_mp3_file.info.length
+
+    def get_audio_properties(self) -> dict[str, Any]:
+        """Get audio properties like bitrate, sample rate, etc."""
+        info = self.__current_mp3_file.info
+        # only length is known by lsp
+        return {
+            "length": info.length,
+            "bitrate": info.bitrate // 1000,  # Convert to kbps
+            "samplerate": info.sample_rate,
+            "channels": info.channels,
+            "codec": "mp3",
+        }

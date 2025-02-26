@@ -26,7 +26,7 @@ class TracksServices:
 
     def populate_database(self, session: Session) -> Iterator[Path]:
         logger.info("Populating database")
-        while self.mp3.load_next_file() is not None:
+        while self.mp3.load_next_file() is not False:
             yield self.mp3.current_file_path
             title = self.mp3.get_title()
             artist = self.mp3.get_artist()

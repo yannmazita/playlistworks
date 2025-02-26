@@ -4,6 +4,7 @@ from enum import Enum
 
 class ID3Keys(Enum):
     TITLE = "TIT2"
+    TITLE_SORT_ORDER = "TSOT"
     TRACK_SUBTITLE = "TIT3"
     ARTIST = "TPE1"
     ARTIST_SORT = (
@@ -32,13 +33,63 @@ class ID3Keys(Enum):
     LABEL_ID = "TXXX:QuodLibet::labelid"
     MUSICIAN_CREDITS = "TMCL"
     WRITTEN_BY = "TEXT"
-    # ISRC = "ISRC"
+    ISRC = "ISRC"
     BPM = "TBPM"
     MEDIA = "TMED"
     COMPILATION = "TCMP"  # '0' or '1'
     COMMENT = "COMM"
     STATS = "POPM"
-    TEST = ""
+
+
+class AppleKeys(Enum):
+    TITLE = "\xa9nam"  # Track title
+    ALBUM = "\xa9alb"  # Album name
+    ARTIST = "\xa9ART"  # Track artists
+    ALBUM_ARTIST = "aART"  # Album artist
+    COMPOSER = "\xa9wrt"  # Track composers
+    YEAR = "\xa9day"  # Release year
+    COMMENT = "\xa9cmt"  # Comments
+    DESCRIPTION = "desc"  # Description (usually used in podcasts)
+    PURCHASE_DATE = "purd"  # Purchase date
+    GROUPING = "\xa9grp"  # Grouping
+    GENRE = "\xa9gen"  # Track genres
+    LYRICS = "\xa9lyr"  # Lyrics
+    PODCAST_URL = "purl"  # Podcast URL
+    PODCAST_GUID = "egid"  # Podcast episode GUID
+    PODCAST_CATEGORY = "catg"  # Podcast category
+    PODCAST_KEYWORDS = "keyw"  # Podcast keywords
+    ENCODED_BY = "\xa9too"  # Encoded by
+    COPYRIGHT = "cprt"  # Copyright
+    ALBUM_SORT_ORDER = "soal"  # Album for sorting
+    ALBUM_ARTIST_SORT_ORDER = "soaa"  # Album artist for sorting
+    ARTIST_SORT_ORDER = "soar"  # Artist for sorting
+    TITLE_SORT_ORDER = "sonm"  # Title for sorting
+    COMPOSER_SORT_ORDER = "soco"  # Composer for sorting
+    SHOW_SORT_ORDER = "sosn"  # Show for sorting
+    SHOW_NAME = "tvsh"  # Show name
+    WORK = "\xa9wrk"  # Work
+    MOVEMENT = "\xa9mvn"  # Movement
+    COMPILATION = "cpil"  # Is part of a compilation
+    GAPLESS_ALBUM = "pgap"  # Is part of a gapless album
+    PODCAST = "pcst"  # Podcast (iTunes reads this only on import)
+    TRACK_NUMBER = "trkn"  # Track number, total tracks
+    DISC_NUMBER = "disk"  # Disc number, total discs
+    BPM = "tmpo"  # Tempo/BPM
+    MOVEMENT_COUNT = "\xa9mvc"  # Movement count
+    MOVEMENT_INDEX = "\xa9mvi"  # Movement index
+    WORK_MOVEMENT = "shwm"  # Work/movement
+    MEDIA_KIND = "stik"  # Media kind
+    HD_VIDEO = "hdvd"  # HD video
+    CONTENT_RATING = "rtng"  # Content rating
+    TV_EPISODE = "tves"  # TV episode
+    TV_SEASON = "tvsn"  # TV season
+    PL_ID = "plID"  # iTunes internal ID
+    CN_ID = "cnID"  # iTunes internal ID
+    GE_ID = "geID"  # iTunes internal ID
+    AT_ID = "atID"  # iTunes internal ID
+    SF_ID = "sfID"  # iTunes internal ID
+    CM_ID = "cmID"  # iTunes internal ID
+    AK_ID = "akID"  # iTunes internal ID
 
 
 class Iso6392Codes(Enum):

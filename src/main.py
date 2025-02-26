@@ -7,7 +7,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from src.common.database import create_db_and_tables
+from src.common.database import create_tracks_indexes, get_database
 from src.common.utils.path import get_component_paths
 from src.common.utils.settings import settings
 
@@ -22,8 +22,6 @@ logger.addHandler(console_handler)
 
 
 def main():
-    create_db_and_tables()
-
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
     QQuickStyle.setStyle(settings.qt_style)
@@ -42,4 +40,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    db = get_database()
+    create_tracks_indexes(db)

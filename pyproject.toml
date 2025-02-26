@@ -13,7 +13,7 @@ mutagen = "^1.47.0"
 pydantic = "^2.10.6"
 pydantic-settings = "^2.8.0"
 pygobject = "^3.50.0"
-sqlalchemy = "^2.0.38"
+pymongo = "^4.11.1"
 
 
 [tool.poetry.group.dev.dependencies]

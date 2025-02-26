@@ -1,68 +1,51 @@
 # src.common.database
-from contextlib import contextmanager
-from typing import Any, Iterator
+import logging
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from pymongo import ASCENDING, DESCENDING, TEXT, IndexModel, MongoClient
+from pymongo.collection import Collection
+from pymongo.database import Database
 
-from src.common.models import Base
 from src.common.utils.settings import settings
 
-SQLITE_DB_URL = f"sqlite:///{settings.sqlite_db_path}"
+logger = logging.getLogger(__name__)
 
 
-class DatabaseSessionManager:
-    def __init__(self, db_url: str, engine_kwargs: dict[str, Any] = {}):
-        self._engine = create_engine(db_url, **engine_kwargs)
-        self._sessionmaker = sessionmaker(
-            autocommit=False, bind=self._engine, expire_on_commit=False
-        )
-
-    def close(self):
-        if self._engine is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-
-        self._engine.dispose()
-        self._engine = None
-        self._sessionmaker = None
-
-    @contextmanager
-    def connect(self):
-        if self._engine is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-
-        connection = self._engine.connect()
-        try:
-            yield connection
-        except Exception:
-            connection.rollback()
-            raise
-        finally:
-            connection.close()
-
-    @contextmanager
-    def session(self) -> Iterator[Session]:
-        if self._sessionmaker is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-
-        session = self._sessionmaker()
-        try:
-            yield session
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+def get_database() -> Database:
+    """Initializes and returns a MongoDB database connection."""
+    logger.info(f"Connecting to MongoDB at: {settings.mongo_db_uri}")
+    client = MongoClient(settings.mongo_db_uri)
+    return client[settings.mongo_db_name]
 
 
-sessionmanager = DatabaseSessionManager(SQLITE_DB_URL, {"echo": settings.sqlite_echo})
+def get_collection(db: Database, collection_name: str) -> Collection:
+    """
+    Returns a MongoDB collection.
+    """
+    return db[collection_name]
 
 
-def get_session() -> Iterator[Session]:
-    with sessionmanager.session() as session:
-        yield session
+def create_tracks_indexes(db: Database):
+    """
+    Creates indexes on the 'tracks' collection.
+    """
+    tracks: Collection = db["tracks"]
 
+    indexes = [
+        IndexModel([("path", ASCENDING)], unique=True),
+        IndexModel([("tags_lower.artist", TEXT)]),
+        IndexModel([("tags_lower.artistsort", TEXT)]),
+        IndexModel([("tags_lower.album", TEXT)]),
+        IndexModel([("tags_lower.albumartistsort", TEXT)]),
+        IndexModel([("tags_lower.title", TEXT)]),
+        IndexModel([("tags_lower.genre", TEXT)]),
+        IndexModel([("fileprops.format", ASCENDING)]),
+        IndexModel([("app_data.play_count", DESCENDING)]),
+        IndexModel([("app_data.last_played", DESCENDING)]),
+        IndexModel([("app_data.rating", DESCENDING)]),
+    ]
 
-def create_db_and_tables():
-    with sessionmanager._engine.begin() as conn:
-        Base.metadata.create_all(bind=conn)
+    try:
+        result = tracks.create_indexes(indexes)
+        logger.info(f"Created indexes: {result}")
+    except Exception as e:
+        logger.error(f"Error creating indexes: {e}", exc_info=True)
