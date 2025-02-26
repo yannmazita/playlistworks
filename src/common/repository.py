@@ -1,305 +1,179 @@
 # src.common.repository
-from typing import Generic, TypeVar, Any, Type
-from pydantic import BaseModel
-from pymongo.collection import Collection
-from bson import ObjectId
+import sqlite3
 import logging
+import json
+from typing import Generic, TypeVar, Any, Type, cast
+from pydantic import BaseModel
 
 # Generic type for Pydantic models
 T = TypeVar("T", bound=BaseModel)
 
+logger = logging.getLogger(__name__)
 
-class BaseRepository(Generic[T]):
-    """
-    Base repository providing common operations for MongoDB collections.
 
-    Attributes:
-        T: Must be a Pydantic BaseModel.
-    """
+class DatabaseRepository(Generic[T]):
+    """Base repository for SQLite database operations."""
 
-    def __init__(self, collection: Collection, model_class: Type[T]):
-        """
-        Initialize the repository with a MongoDB collection and a Pydantic model class.
-
-        Args:
-            collection: MongoDB collection
-            model_class: Pydantic model class for this repository
-        """
-        self.collection = collection
+    def __init__(self, conn: sqlite3.Connection, model_class: Type[T], table_name: str):
+        self.conn = conn
         self.model_class = model_class
-        self.logger = logging.getLogger(f"{__name__}.{collection.name}")
-        self.logger.debug(f"Repository initialized for collection: {collection.name}")
+        self.table_name = table_name
+        self.logger = logging.getLogger(f"{__name__}.{table_name}")
+        self.logger.debug(f"Repository initialized for table: {table_name}")
 
-    def find_by_id(self, id: str) -> T | None:
-        """
-        Find a document by its ID.
-
-        Args:
-            id: The ID of the document to find.
-
-        Returns:
-            The found document as a Pydantic model, or None if not found.
-        """
-        self.logger.debug(f"Attempting to find document by ID: {id}")
+    def _execute_query(self, query: str, params: tuple = ()) -> int | None:
+        """Executes a SQL query that doesn't return rows (e.g., INSERT, UPDATE, DELETE)."""
         try:
-            doc = self.collection.find_one({"_id": ObjectId(id)})
-            if doc:
-                validated_doc = self.model_class.model_validate(doc)
-                self.logger.info(f"Found document with ID: {id}")
-                return validated_doc
-            else:
-                self.logger.info(f"Document with ID {id} not found.")
-                return None
-        except Exception as e:
+            with self.conn:  # Use a context manager for transactions
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                return cursor.lastrowid  # Return the ID of last insert
+        except sqlite3.Error as e:
             self.logger.error(
-                f"Error finding document by ID: {id}, Error: {e}", exc_info=True
+                f"Error executing query: {query} with params {params}: {e}",
+                exc_info=True,
             )
-            return None
+            raise
 
-    def find_one(self, query: dict[str, Any]) -> T | None:
-        """
-        Find a single document matching the query.
-
-        Args:
-            query: A dictionary representing the MongoDB query.
-
-        Returns:
-            The found document as a Pydantic model, or None if not found.
-        """
-        self.logger.debug(f"Attempting to find one document with query: {query}")
+    def _execute_select_query(
+        self, query: str, params: tuple = (), fetchone=False
+    ) -> sqlite3.Row | list[sqlite3.Row] | None:
+        """Executes a SQL query that returns rows (SELECT)."""
         try:
-            doc = self.collection.find_one(query)
-            if doc:
-                validated_doc = self.model_class.model_validate(doc)
-                self.logger.info(f"Found document with query: {query}")
-                return validated_doc
-            else:
-                self.logger.info(f"No document found with query: {query}")
-                return None
-        except Exception as e:
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                if fetchone:
+                    return cursor.fetchone()
+                else:
+                    return cursor.fetchall()
+        except sqlite3.Error as e:
             self.logger.error(
-                f"Error finding document with query: {query}, Error: {e}", exc_info=True
+                f"Error executing query: {query} with params {params}: {e}",
+                exc_info=True,
             )
-            return None
+            raise
+
+    def _row_to_model(self, row: sqlite3.Row) -> T:
+        """Converts a database row to a Pydantic model instance."""
+        row_dict = dict(row)  # Convert sqlite3.Row to a dictionary
+        for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+            if key in row_dict and row_dict[key] is not None:
+                row_dict[key] = json.loads(row_dict[key])
+        return self.model_class.model_validate(row_dict)
+
+    def find_by_id(self, id: int) -> T | None:
+        query = f"SELECT * FROM {self.table_name} WHERE id = ?"
+        row = self._execute_select_query(query, (id,), fetchone=True)
+        return self._row_to_model(row) if row else None  # type: ignore
+
+    def find_one(self, query_dict: dict[str, Any]) -> T | None:
+        """Finds a single record matching criteria.  Simplified for SQLite."""
+        where_clauses = " AND ".join(f"{key} = ?" for key in query_dict)
+        query = f"SELECT * FROM {self.table_name} WHERE {where_clauses} LIMIT 1"
+        params = tuple(query_dict.values())
+        row = self._execute_select_query(query, params, fetchone=True)
+        return self._row_to_model(row) if row else None  # type: ignore
 
     def find_many(
         self,
-        query: dict[str, Any],
+        query_dict: dict[str, Any] | None = None,
         sort: list[tuple] | None = None,
         limit: int | None = None,
         skip: int | None = None,
     ) -> list[T]:
-        """
-        Find all documents matching the query with optional sorting and pagination.
+        """Finds multiple records matching criteria, with sorting, limit, and skip."""
+        query = f"SELECT * FROM {self.table_name}"
+        params: list[Any] = []
 
-        Args:
-            query: MongoDB query dict.
-            sort: list of (field, direction) tuples for sorting.
-            limit: Maximum number of documents to return.
-            skip: Number of documents to skip.
+        if query_dict:
+            where_clauses = " AND ".join(f"{key} = ?" for key in query_dict)
+            query += f" WHERE {where_clauses}"
+            params.extend(query_dict.values())
 
-        Returns:
-            list of model instances.
-        """
-        self.logger.debug(
-            f"Attempting to find many documents with query: {query}, sort: {sort}, limit: {limit}, skip: {skip}"
-        )
-        try:
-            cursor = self.collection.find(query)
-
-            if sort:
-                cursor = cursor.sort(sort)
-
-            if skip:
-                cursor = cursor.skip(skip)
-
-            if limit:
-                cursor = cursor.limit(limit)
-
-            validated_docs = [self.model_class.model_validate(doc) for doc in cursor]
-            self.logger.info(
-                f"Found {len(validated_docs)} documents with query: {query}"
+        if sort:
+            # assuming (field, "ASC" or "DESC") tuples,
+            # todo: dedicated type
+            sort_clauses = ", ".join(
+                f"{field} {direction}" for field, direction in sort
             )
-            return validated_docs
-        except Exception as e:
-            self.logger.error(
-                f"Error finding documents with query: {query}, Error: {e}",
-                exc_info=True,
-            )
-            return []
+            query += f" ORDER BY {sort_clauses}"
 
-    def count(self, query: dict[str, Any]) -> int:
-        """
-        Count documents matching the query.
+        if limit is not None:
+            query += " LIMIT ?"
+            params.append(limit)
 
-        Args:
-            query: A dictionary representing the MongoDB query.
+        if skip is not None:
+            query += " OFFSET ?"
+            params.append(skip)
 
-        Returns:
-            The number of documents matching the query.
-        """
-        self.logger.debug(f"Attempting to count documents with query: {query}")
-        try:
-            count = self.collection.count_documents(query)
-            self.logger.info(f"Counted {count} documents with query: {query}")
-            return count
-        except Exception as e:
-            self.logger.error(
-                f"Error counting documents with query: {query}, Error: {e}",
-                exc_info=True,
-            )
-            return 0
+        rows = self._execute_select_query(query, tuple(params))  # Use the select query
+        return [self._row_to_model(row) for row in rows] if rows else []  # type: ignore
 
-    def insert(self, model: T) -> str | None:
-        """
-        Insert a new document and return its ID.
+    def count(self, query_dict: dict[str, Any] | None = None) -> int:
+        query = f"SELECT COUNT(*) FROM {self.table_name}"
+        params: list[Any] = []
+        if query_dict:
+            where_clauses = " AND ".join(f"{key} = ?" for key in query_dict)
+            query += f" WHERE {where_clauses}"
+            params.extend(query_dict.values())
 
-        Args:
-            model: The Pydantic model instance to insert.
+        row = self._execute_select_query(query, tuple(params), fetchone=True)
+        return cast(int, row[0]) if row else 0
 
-        Returns:
-            The ID of the inserted document as a string, or None on failure.
-        """
-        self.logger.debug(f"Attempting to insert document: {model}")
-        try:
-            data = model.model_dump(exclude={"id"})
-            result = self.collection.insert_one(data)
-            inserted_id = str(result.inserted_id)
-            self.logger.info(f"Inserted document with ID: {inserted_id}")
-            return inserted_id
-        except Exception as e:
-            self.logger.error(
-                f"Error inserting document: {model}, Error: {e}", exc_info=True
-            )
-            return None
+    def insert(self, model: T) -> int | None:
+        """Inserts a new record."""
+        data = model.model_dump(exclude={"id"})  # Exclude auto-incrementing ID
 
-    def update(self, id: str, model: T) -> bool:
-        """
-        Update an existing document by ID.
+        # Serialize JSON fields
+        for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+            if key in data and data[key] is not None:
+                data[key] = json.dumps(data[key])
 
-        Args:
-            id: The ID of the document to update.
-            model: The Pydantic model instance containing the updated data.
+        fields = ", ".join(data.keys())
+        placeholders = ", ".join("?" * len(data))
+        query = f"INSERT INTO {self.table_name} ({fields}) VALUES ({placeholders})"
+        last_row_id = self._execute_query(query, tuple(data.values()))
+        return last_row_id
 
-        Returns:
-            True if the document was updated, False otherwise.
-        """
-        self.logger.debug(f"Attempting to update document with ID: {id}, Data: {model}")
-        try:
-            data = model.model_dump(exclude={"id"})
-            result = self.collection.replace_one({"_id": ObjectId(id)}, data)
-            if result.modified_count > 0:
-                self.logger.info(f"Updated document with ID: {id}")
-                return True
-            else:
-                self.logger.info(f"Document with ID {id} not found for update.")
-                return False
-        except Exception as e:
-            self.logger.error(
-                f"Error updating document with ID: {id}, Error: {e}", exc_info=True
-            )
-            return False
+    def update(self, id: int, model: T) -> bool:
+        """Updates an existing record by ID."""
+        data = model.model_dump(exclude={"id"})
 
-    def upsert(self, query: dict[str, Any], model: T) -> bool:
-        """
-        Update if exists or insert if not.
+        # Serialize JSON fields
+        for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+            if key in data and data[key] is not None:
+                data[key] = json.dumps(data[key])
 
-        Args:
-            query:  The filter to find the document to update.  If no documents match, insert the update as a new document.
-            model: The Pydantic model instance containing the updated or new data.
+        set_clauses = ", ".join(f"{key} = ?" for key in data)
+        query = f"UPDATE {self.table_name} SET {set_clauses} WHERE id = ?"
+        params = tuple(data.values()) + (id,)
+        self._execute_query(query, params)
+        return True  # SQLite doesn't easily give us rows affected
 
-        Returns:
-            True if a document was updated or inserted, False otherwise.
-        """
-        self.logger.debug(
-            f"Attempting to upsert document with query: {query}, Data: {model}"
-        )
-        try:
-            data = model.model_dump(exclude={"id"})
-            result = self.collection.replace_one(query, data, upsert=True)
-            if result.modified_count > 0:
-                self.logger.info(f"Upserted (updated) document with query: {query}")
-            elif result.upserted_id is not None:
-                self.logger.info(
-                    f"Upserted (inserted) document with ID: {result.upserted_id} and query: {query}"
-                )
-            return result.modified_count > 0 or result.upserted_id is not None
-        except Exception as e:
-            self.logger.error(
-                f"Error upserting document with query: {query}, Error: {e}",
-                exc_info=True,
-            )
-            return False
+    def upsert(self, query_dict: dict[str, Any], model: T) -> int | None:
+        """Updates if exists or inserts if not."""
+        existing_record = self.find_one(query_dict)
+        if existing_record:
+            self.update(existing_record.id, model)  # type: ignore
+            return existing_record.id  # type: ignore
+        else:
+            return self.insert(model)
 
-    def delete(self, id: str) -> bool:
-        """
-        Delete a document by ID.
+    def delete(self, id: int) -> bool:
+        """Deletes a record by ID."""
+        query = f"DELETE FROM {self.table_name} WHERE id = ?"
+        self._execute_query(query, (id,))
+        return True  # SQLite doesn't easily give us rows affected
 
-        Args:
-            id: The ID of the document to delete.
+    def delete_many(self, query_dict: dict[str, Any]) -> int:
+        """Deletes multiple records matching criteria."""
+        where_clauses = " AND ".join(f"{key} = ?" for key in query_dict)
+        query = f"DELETE FROM {self.table_name} WHERE {where_clauses}"
+        params = tuple(query_dict.values())
+        self._execute_query(query, params)
+        return 0  #  # SQLite doesn't easily give us rows affected
 
-        Returns:
-            True if the document was deleted, False otherwise.
-        """
-        self.logger.debug(f"Attempting to delete document with ID: {id}")
-        try:
-            result = self.collection.delete_one({"_id": ObjectId(id)})
-            if result.deleted_count > 0:
-                self.logger.info(f"Deleted document with ID: {id}")
-                return True
-            else:
-                self.logger.info(f"Document with ID {id} not found for deletion.")
-                return False
-
-        except Exception as e:
-            self.logger.error(
-                f"Error deleting document with ID: {id}, Error: {e}", exc_info=True
-            )
-            return False
-
-    def delete_many(self, query: dict[str, Any]) -> int:
-        """
-        Delete all documents matching the query and return count.
-
-        Args:
-            query: A dictionary representing the MongoDB query.
-
-        Returns:
-            The number of documents deleted.
-        """
-        self.logger.debug(f"Attempting to delete many documents with query: {query}")
-        try:
-            result = self.collection.delete_many(query)
-            deleted_count = result.deleted_count
-            self.logger.info(f"Deleted {deleted_count} documents with query: {query}")
-            return deleted_count
-        except Exception as e:
-            self.logger.error(
-                f"Error deleting documents with query: {query}, Error: {e}",
-                exc_info=True,
-            )
-            return 0
-
-    def aggregate(self, pipeline: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """
-        Run an aggregation pipeline and return raw results.
-
-        Args:
-            pipeline: A list of dictionaries representing the aggregation pipeline stages.
-
-        Returns:
-            A list of dictionaries containing the results of the aggregation.
-        """
-        self.logger.debug(f"Attempting to run aggregation pipeline: {pipeline}")
-        try:
-            result = list(self.collection.aggregate(pipeline))
-            self.logger.info(
-                f"Aggregation pipeline completed. Returned {len(result)} documents."
-            )
-            return result
-        except Exception as e:
-            self.logger.error(
-                f"Error running aggregation pipeline: {pipeline}, Error: {e}",
-                exc_info=True,
-            )
-            return []
+    def aggregate(self, pipeline: list[dict[str, Any]]):
+        """Not implemented for SQLite repository."""
+        raise NotImplementedError("Aggregation not implemented for SQLite")

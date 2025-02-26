@@ -1,51 +1,81 @@
 # src.common.database
+import sqlite3
 import logging
-
-from pymongo import ASCENDING, DESCENDING, TEXT, IndexModel, MongoClient
-from pymongo.collection import Collection
-from pymongo.database import Database
-
 from src.common.utils.settings import settings
 
 logger = logging.getLogger(__name__)
 
 
-def get_database() -> Database:
-    """Initializes and returns a MongoDB database connection."""
-    logger.info(f"Connecting to MongoDB at: {settings.mongo_db_uri}")
-    client = MongoClient(settings.mongo_db_uri)
-    return client[settings.mongo_db_name]
-
-
-def get_collection(db: Database, collection_name: str) -> Collection:
-    """
-    Returns a MongoDB collection.
-    """
-    return db[collection_name]
-
-
-def create_tracks_indexes(db: Database):
-    """
-    Creates indexes on the 'tracks' collection.
-    """
-    tracks: Collection = db["tracks"]
-
-    indexes = [
-        IndexModel([("path", ASCENDING)], unique=True),
-        IndexModel([("tags_lower.artist", TEXT)]),
-        IndexModel([("tags_lower.artistsort", TEXT)]),
-        IndexModel([("tags_lower.album", TEXT)]),
-        IndexModel([("tags_lower.albumartistsort", TEXT)]),
-        IndexModel([("tags_lower.title", TEXT)]),
-        IndexModel([("tags_lower.genre", TEXT)]),
-        IndexModel([("fileprops.format", ASCENDING)]),
-        IndexModel([("app_data.play_count", DESCENDING)]),
-        IndexModel([("app_data.last_played", DESCENDING)]),
-        IndexModel([("app_data.rating", DESCENDING)]),
-    ]
-
+def get_db_connection() -> sqlite3.Connection:
+    """Creates a database connection to the SQLite database."""
     try:
-        result = tracks.create_indexes(indexes)
-        logger.info(f"Created indexes: {result}")
-    except Exception as e:
-        logger.error(f"Error creating indexes: {e}", exc_info=True)
+        conn = sqlite3.connect(settings.database_filename)
+        conn.row_factory = sqlite3.Row  # Access columns by name
+        logger.info(f"Connected to SQLite database: {settings.database_filename}")
+        return conn
+    except sqlite3.Error as e:
+        logger.error(f"Error connecting to database: {e}", exc_info=True)
+        raise
+
+
+def initialize_database(conn: sqlite3.Connection):
+    """Initializes the database (creates tables and indexes)."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tracks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT UNIQUE NOT NULL,
+                fileprops TEXT NOT NULL,
+                tags TEXT NOT NULL,
+                tags_lower TEXT NOT NULL,
+                app_data TEXT NOT NULL,
+                metadata_source TEXT,
+                lyrics TEXT,
+                raw_metadata TEXT
+            )
+        """
+        )
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_path ON tracks (path)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_lower_artist ON tracks (json_extract(tags_lower, '$.artist'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_lower_artistsort ON tracks (json_extract(tags_lower, '$.artistsort'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_lower_album ON tracks (json_extract(tags_lower, '$.album'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_lower_albumartistsort ON tracks (json_extract(tags_lower, '$.albumartistsort'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_lower_title ON tracks (json_extract(tags_lower, '$.title'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_lower_genre ON tracks (json_extract(tags_lower, '$.genre'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_app_data_play_count ON tracks (json_extract(app_data, '$.play_count'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_app_data_last_played ON tracks (json_extract(app_data, '$.last_played'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_app_data_rating ON tracks (json_extract(app_data, '$.rating'))"
+        )
+
+        conn.commit()
+        logger.info("Database initialized successfully.")
+    except sqlite3.Error as e:
+        logger.error(f"Error initializing database: {e}", exc_info=True)
+        conn.rollback()
+        raise
+
+
+def close_db_connection(conn: sqlite3.Connection):
+    if conn:
+        conn.close()
+        logger.info("Database connection closed.")

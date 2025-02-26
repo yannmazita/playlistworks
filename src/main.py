@@ -7,7 +7,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from src.common.database import create_tracks_indexes, get_database
+from src.common.database import get_db_connection, initialize_database
 from src.common.utils.path import get_component_paths
 from src.common.utils.settings import settings
 
@@ -41,5 +41,5 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    db = get_database()
-    create_tracks_indexes(db)
+    connection = get_db_connection()
+    initialize_database(connection)

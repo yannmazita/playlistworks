@@ -27,7 +27,6 @@ Work in progress! Very early stage and actively developed.
 
 ## Dependencies
 
-- pymongo (mongodb driver)
 - PySide6 (QT6 Python bindings)
 - mutagen (Audio metadata)
 - pygobject (GObject Python bindings)
