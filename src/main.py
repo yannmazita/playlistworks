@@ -44,5 +44,6 @@ if __name__ == "__main__":
     # main()
     connection = get_db_connection()
     initialize_database(connection)
-    # headless = Headless("", connection)
-    # headless.run()
+    if settings.library_directory:
+        #headless = Headless(settings.library_directory, connection)
+        #headless.run()

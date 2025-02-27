@@ -38,4 +38,3 @@ class TracksServices:
             )
 
             self.repository.insert(track)
-        logger.info("Metadata database populated")

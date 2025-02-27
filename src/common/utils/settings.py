@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     qt_style: str = Field("Basic", alias="application_theme")
     database_filename: str = Field("pworks.db")
     database_echo: bool = Field(False)
+    library_directory: str
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
