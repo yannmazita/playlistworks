@@ -58,6 +58,8 @@ class DatabaseRepository(Generic[T]):
         """Converts a database row to a Pydantic model instance."""
         if isinstance(row, sqlite3.Row):
             row_dict = {key: row[key] for key in row.keys()}
+            # Do not forget to add json fields here
+            # Todo: maybe have a single 'json_data' field in models
             for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
                 if key in row_dict and row_dict[key] is not None:
                     row_dict[key] = json.loads(row_dict[key])
@@ -137,6 +139,8 @@ class DatabaseRepository(Generic[T]):
         data = model.model_dump(exclude={"id"})  # Exclude auto-incrementing ID
 
         # Serialize JSON fields
+        # Do not forget to add json fields here
+        # Todo: maybe have a single 'json_data' field in models
         for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
             if key in data and data[key] is not None:
                 data[key] = json.dumps(data[key])
@@ -152,6 +156,8 @@ class DatabaseRepository(Generic[T]):
         data = model.model_dump(exclude={"id"})
 
         # Serialize JSON fields
+        # Do not forget to add json fields here
+        # Todo: maybe have a single 'json_data' field in models
         for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
             if key in data and data[key] is not None:
                 data[key] = json.dumps(data[key])
