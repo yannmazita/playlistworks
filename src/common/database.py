@@ -1,4 +1,5 @@
 # src.common.database
+import re
 import sqlite3
 import logging
 from src.common.utils.settings import settings
@@ -10,7 +11,20 @@ def get_db_connection() -> sqlite3.Connection:
     """Creates a database connection to the SQLite database."""
     try:
         conn = sqlite3.connect(settings.database_filename)
-        conn.row_factory = sqlite3.Row  # Access columns by name
+        conn.row_factory = (
+            sqlite3.Row
+        )  # SQLite returns results as Row objects with named-field access
+
+        def regexp_function(pattern, text):
+            if text is None or pattern is None:
+                return False
+            try:
+                return re.search(pattern, text, re.IGNORECASE) is not None
+            except Exception as e:
+                logger.error(f"REGEXP error: {e}, pattern={pattern}, text={text}")
+                return False
+
+        conn.create_function("REGEXP", 2, regexp_function)
         logger.info(f"Connected to SQLite database: {settings.database_filename}")
         return conn
     except sqlite3.Error as e:
@@ -31,9 +45,18 @@ def initialize_database(conn: sqlite3.Connection):
                 tags TEXT NOT NULL,
                 tags_lower TEXT NOT NULL,
                 app_data TEXT NOT NULL,
-                metadata_source TEXT,
-                lyrics TEXT,
                 raw_metadata TEXT
+            )
+        """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS playlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                description TEXT DEFAULT '',
+                query TEXT DEFAULT '',
+                playlist_type TEXT NOT NULL CHECK(playlist_type IN ('static', 'dynamic'))
             )
         """
         )

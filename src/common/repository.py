@@ -54,12 +54,23 @@ class DatabaseRepository(Generic[T]):
             )
             raise
 
-    def _row_to_model(self, row: sqlite3.Row) -> T:
+    def _row_to_model(self, row: sqlite3.Row | tuple) -> T:
         """Converts a database row to a Pydantic model instance."""
-        row_dict = dict(row)  # Convert sqlite3.Row to a dictionary
-        for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
-            if key in row_dict and row_dict[key] is not None:
-                row_dict[key] = json.loads(row_dict[key])
+        if isinstance(row, sqlite3.Row):
+            row_dict = {key: row[key] for key in row.keys()}
+            for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+                if key in row_dict and row_dict[key] is not None:
+                    row_dict[key] = json.loads(row_dict[key])
+        elif isinstance(row, tuple):
+            # Handle cases where the query might return a tuple (e.g., count)
+            # Create a dictionary with dummy keys, this is a workaround
+            column_names = [
+                desc[0]
+                for desc in self.conn.execute(
+                    f"PRAGMA table_info({self.table_name})"
+                ).fetchall()
+            ]
+            row_dict = dict(zip(column_names, row))
         return self.model_class.model_validate(row_dict)
 
     def find_by_id(self, id: int) -> T | None:
