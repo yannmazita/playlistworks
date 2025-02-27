@@ -8,6 +8,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from src.common.database import get_db_connection, initialize_database
+from src.common.utils.headless import Headless
 from src.common.utils.path import get_component_paths
 from src.common.utils.settings import settings
 
@@ -43,3 +44,5 @@ if __name__ == "__main__":
     # main()
     connection = get_db_connection()
     initialize_database(connection)
+    # headless = Headless("", connection)
+    # headless.run()

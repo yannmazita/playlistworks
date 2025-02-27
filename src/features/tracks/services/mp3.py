@@ -2,12 +2,12 @@
 import logging
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
 
 from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
 
 from src.core.types import ID3Keys
+from src.features.tracks.schemas import FileProperties
 
 logger = logging.getLogger(__name__)
 
@@ -49,20 +49,20 @@ class MP3Services:
 
         return True
 
-    def get_tags(self) -> dict[ID3Keys, list[str]]:
-        """Gets ID3 tags from loaded file.
+    def get_tags(self) -> dict[str, list[str]]:
+        """Gets tags from loaded file.
 
         Returns:
             Dictionary of ID3Keys and their frames.
         """
-        tags: dict[ID3Keys, list[str]] = {}
+        tags: dict[str, list[str]] = {}
 
         for frame in ID3Keys:
             try:
                 if frame.value:
                     frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
                     if frames:
-                        tags[frame] = frames
+                        tags[frame.value] = frames
             except (IndexError, KeyError):
                 pass
 
@@ -102,14 +102,17 @@ class MP3Services:
         """Get track duration in seconds"""
         return self.__current_mp3_file.info.length
 
-    def get_audio_properties(self) -> dict[str, Any]:
+    def get_audio_properties(self) -> FileProperties:
         """Get audio properties like bitrate, sample rate, etc."""
-        info = self.__current_mp3_file.info
-        # only length is known by lsp
-        return {
-            "length": info.length,
-            "bitrate": info.bitrate // 1000,  # Convert to kbps
-            "samplerate": info.sample_rate,
-            "channels": info.channels,
-            "codec": "mp3",
-        }
+        mpeg_info = self.__current_mp3_file.info
+        file_stats = self.__current_file_path.stat()
+        # only length is known by lsp in mpeg_info
+        return FileProperties(
+            size=file_stats.st_size,
+            format="mp3",
+            bitrate=mpeg_info.bitrate // 1000,  # Convert to kbps
+            sample_rate=mpeg_info.sample_rate,
+            channels=mpeg_info.channels,
+            length=mpeg_info.length,
+            mtime=file_stats.st_mtime,
+        )

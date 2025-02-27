@@ -1,8 +1,8 @@
 # src.features.tracks.schemas
-from datetime import datetime
 from typing import Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pathlib import Path
+import time
 
 
 class FileProperties(BaseModel):
@@ -14,7 +14,7 @@ class FileProperties(BaseModel):
     sample_rate: int = Field(description="Sample rate in Hz")
     channels: int = Field(description="Number of audio channels")
     length: float = Field(description="Track length in seconds")
-    mtime: datetime = Field(description="Last modification time of the file")
+    mtime: float = Field(description="Last modification time of the file (UNIX time)")
 
 
 class AppData(BaseModel):
@@ -22,9 +22,11 @@ class AppData(BaseModel):
 
     play_count: int = Field(default=0)
     skip_count: int = Field(default=0)
-    last_played: datetime | None = Field(default=None)
+    last_played: float | None = Field(
+        default=None, description="Last played time (UNIX time)"
+    )
     rating: float | None = Field(default=None, ge=0, le=5)
-    added_date: datetime = Field(default_factory=datetime.now)
+    added_date: float = Field(description="Date added (UNIX time)")
 
 
 class Track(BaseModel):
@@ -37,7 +39,7 @@ class Track(BaseModel):
         default_factory=dict,
         description="Lowercase versions of all tags for case-insensitive search",
     )
-    app_data: AppData = Field(default_factory=AppData, description="Application data")
+    app_data: AppData = Field(description="Application data")
 
     # Original raw metadata (for debugging/reference)
     raw_metadata: dict[str, Any] | None = Field(

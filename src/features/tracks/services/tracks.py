@@ -2,11 +2,10 @@
 from collections.abc import Iterator
 import logging
 from pathlib import Path
+import time
 
-from sqlalchemy.orm import Session
-from src.features.tracks.models import Track
+from src.features.tracks.schemas import AppData, Track
 from src.features.tracks.repository import TracksRepository
-from src.features.tracks.schemas import TrackCreate
 from src.features.tracks.services.mp3 import MP3Services
 
 logger = logging.getLogger(__name__)
@@ -24,26 +23,19 @@ class TracksServices:
         self.repository = repository
         self.mp3 = mp3
 
-    def populate_database(self, session: Session) -> Iterator[Path]:
-        logger.info("Populating database")
+    def populate_database(self) -> Iterator[Path]:
+        logger.info("Populating metadata database")
         while self.mp3.load_next_file() is not False:
             yield self.mp3.current_file_path
-            title = self.mp3.get_title()
-            artist = self.mp3.get_artist()
 
-            if title is None or artist is None:
-                logger.warning(
-                    f"{self.mp3.current_file_path} has no title or artist name, skipping"
-                )
-            else:
-                track_data: TrackCreate = TrackCreate(
-                    title=title,
-                    artist=artist,
-                    album=self.mp3.get_album(),
-                    genre=self.mp3.get_genre(),
-                    duration=self.mp3.get_duration(),
-                    path=str(self.mp3.current_file_path),
-                    id3_metadata=self.mp3.get_tags(),
-                )
-                track: Track = self.repository.create(session, track_data)
-                logger.debug(f"Added {track} to database")
+            path = self.mp3.current_file_path
+            fileprops = self.mp3.get_audio_properties()
+            tags = self.mp3.get_tags()
+            app_data = AppData(added_date=time.time())
+
+            track: Track = Track(
+                path=str(path), fileprops=fileprops, tags=tags, app_data=app_data
+            )
+
+            self.repository.insert(track)
+        logger.info("Metadata database populated")

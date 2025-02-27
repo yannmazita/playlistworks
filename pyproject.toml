@@ -19,6 +19,7 @@ pytest = "^8.3.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.7"
+debugpy = "^1.8.12"
 
 
 [build-system]
