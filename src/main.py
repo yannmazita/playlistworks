@@ -8,7 +8,6 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from src.common.database import get_db_connection, initialize_database
-from src.common.utils.headless import Headless
 from src.common.utils.path import get_component_paths
 from src.common.utils.settings import settings
 from src.features.tracks.models import TrackTableModel
@@ -48,12 +47,4 @@ def main():
 
 
 if __name__ == "__main__":
-    if True:
-        main()
-
-    if False:
-        connection = get_db_connection()
-        initialize_database(connection)
-        if settings.library_directory:
-            headless = Headless(settings.library_directory, connection)
-            headless.run()
+    main()

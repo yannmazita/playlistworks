@@ -31,8 +31,10 @@ class TrackTableModel(QAbstractTableModel):
         return 3
 
     def data(
-        self, index: QModelIndex | QPersistentModelIndex, role=Qt.DisplayRole
-    ) -> str | None:  # type: ignore
+        self,
+        index: QModelIndex | QPersistentModelIndex,
+        role=Qt.DisplayRole,  # type: ignore
+    ) -> str | None:
         if not index.isValid():
             logger.warning("Invalid index in data method")
             return None
