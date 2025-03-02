@@ -31,18 +31,15 @@ Work in progress! Very early stage and actively developed.
 - mutagen (Audio metadata)
 - pygobject (GObject Python bindings)
 
-## Roadmap
+## Roadmap (MVP)
 - Metadata extraction and database: ✅
+- GUI: 🕙
 - Audio file player: ❌
 - Regex dynamic playlists: ❌
-- GUI: ❌
 
 ## Goals
 - Robust and fast dynamic playlist creation using audio file metadata
 - Desktop and Mobile ports
-
-## Non-goals
-- Tagging (See [Ex Falso](https://github.com/quodlibet/quodlibet) part of the Quod Libet project)
 
 ## Contributing
 
