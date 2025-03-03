@@ -3,7 +3,6 @@ import logging
 from collections.abc import Iterator
 from pathlib import Path
 
-from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
 
 from src.core.types import ID3Keys
@@ -17,34 +16,46 @@ class MP3Services:
     Class for MP3 specific operations.
     """
 
-    def __init__(self, musicDirectory: Path):
+    def __init__(self, libraryPath: Path):
+        self.__library_path: Path = libraryPath
+        self.__paths: Iterator[Path] | None = None
         self.__current_file_path: Path = Path("")
-        self.__paths: Iterator[Path] = Path(musicDirectory).rglob("*.mp3")
-        self.__current_mp3_file: MP3 = MP3()
-        self.__current_mp3_tags: ID3 = ID3()
+        self.__current_mp3: MP3 | None = None
 
     @property
     def current_file_path(self) -> Path:
         """File path of current loaded audio file"""
         return self.__current_file_path
 
+    def _get_paths(self) -> Iterator[Path]:
+        """Get the iterator of MP3 file paths."""
+        if self.__paths is None:
+            self.__paths = self.__library_path.rglob("*.mp3")
+        return self.__paths
+
     def load_next_file(self) -> bool:
-        """Loads next audio file from paths in instance.
+        """Loads the next audio file from paths in instance.
 
         Returns:
-            A boolean, true if file was loaded, false otherwise.
+            True if a file was loaded, False otherwise.
         """
         try:
-            self.__current_file_path = Path(next(self.__paths))
+            self.__current_file_path = next(self._get_paths())
+            self.__current_mp3 = MP3(self.__current_file_path)
+            try:
+                # Adding an empty ID3 tag if none exist for future manipulation
+                # self.__current_mp3.add_tags()
+                pass
+            except Exception:
+                logger.info(f"No ID3 header found for {self.__current_file_path}")
         except StopIteration:
+            self.__current_mp3 = None
             return False
-
-        try:
-            self.__current_mp3_file = MP3(self.__current_file_path)
-            self.__current_mp3_tags = ID3(self.__current_file_path)
         except Exception as e:
-            logger.error(f"Error loading {self.__current_file_path}", e, exc_info=True)
-            logger.debug("Trying next file")
+            logger.error(
+                f"Error loading {self.__current_file_path}: {e}", exc_info=True
+            )
+            self.__current_mp3 = None
             return self.load_next_file()
 
         return True
@@ -55,55 +66,29 @@ class MP3Services:
         Returns:
             Dictionary of ID3Keys and their frames.
         """
+        if self.__current_mp3 is None:
+            return {}
+
         tags: dict[str, list[str]] = {}
 
         for frame in ID3Keys:
             try:
-                frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
+                frames = list(map(str, self.__current_mp3.ID3.getall(frame.value)))
                 if frames:
                     tags[frame.name] = frames
             except (IndexError, KeyError):
                 pass
 
+        # for key, value in self.__current_mp3.tags.items():
+        #    tags[key] = value
+
         return tags
 
-    def get_title(self) -> list[str] | None:
-        try:
-            return self.__current_mp3_tags.getall(ID3Keys.TITLE)
-        except IndexError:
-            return None
-
-    def get_artist(self) -> list[str] | None:
-        try:
-            return self.__current_mp3_tags.getall(ID3Keys.ARTIST)
-        except IndexError:
-            return None
-
-    def get_album(self) -> list[str] | None:
-        try:
-            return self.__current_mp3_tags.getall(ID3Keys.ALBUM)
-        except IndexError:
-            return None
-
-    def get_genre(self) -> list[str] | None:
-        try:
-            return self.__current_mp3_tags.getall(ID3Keys.GENRE)
-        except IndexError:
-            return None
-
-    def get_track_number(self) -> str | None:
-        try:
-            return self.__current_mp3_tags.getall(ID3Keys.TRACK_NUM)[0]
-        except IndexError:
-            return None
-
-    def get_duration(self) -> float:
-        """Get track duration in seconds"""
-        return self.__current_mp3_file.info.length
-
-    def get_audio_properties(self) -> FileProperties:
+    def get_audio_properties(self) -> FileProperties | None:
         """Get audio properties like bitrate, sample rate, etc."""
-        mpeg_info = self.__current_mp3_file.info
+        if self.__current_mp3 is None:
+            return None
+        mpeg_info = self.__current_mp3.info
         file_stats = self.__current_file_path.stat()
         # only length is known by lsp in mpeg_info
         return FileProperties(

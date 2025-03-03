@@ -1,18 +1,11 @@
 # src.main
 import logging
 import sys
-from pathlib import Path
-
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtQuickControls2 import QQuickStyle
 
 from src.common.database import get_db_connection, initialize_database
-from src.common.utils.path import get_component_paths
+from src.common.services.backend import BackendServices
+from src.common.services.gui import GuiServices
 from src.common.utils.settings import settings
-from src.common.handlers import DirectoryHandler
-from src.features.tracks.models import TrackTableModel
-from src.features.tracks.repository import TracksRepository
 
 logger = logging.getLogger()
 logger.setLevel(settings.log_level)
@@ -24,30 +17,17 @@ logger.addHandler(console_handler)
 
 
 def main():
-    app = QGuiApplication(sys.argv)
-    engine = QQmlApplicationEngine()
-    QQuickStyle.setStyle(settings.qt_style)
-    # for path in get_component_paths():
-    #    logger.debug(f"Added component path path {path}")
-    #    engine.addImportPath(path)
+    try:
+        connection = get_db_connection()
+        initialize_database(connection)
+        backend = BackendServices(connection)
+        gui = GuiServices(backend)
 
-    connection = get_db_connection()
-    initialize_database(connection)
-    tracks_repository = TracksRepository(connection)
-    track_table_model = TrackTableModel(tracks_repository)
+        gui.run()
 
-    directory_handler = DirectoryHandler()
-
-    engine.rootContext().setContextProperty("trackTableModel", track_table_model)
-    engine.rootContext().setContextProperty("directoryHandler", directory_handler)
-    engine.load(Path(__file__).parent / "Main.qml")
-
-    if not engine.rootObjects():
-        sys.exit(-1)
-
-    exit_code = app.exec()
-    del engine
-    sys.exit(exit_code)
+    except Exception as e:
+        logger.exception(f"An error occurred: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

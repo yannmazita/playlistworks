@@ -1,6 +1,7 @@
 from pathlib import Path
 
 SRC_PATH = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 
 def get_component_paths() -> list[Path]:
