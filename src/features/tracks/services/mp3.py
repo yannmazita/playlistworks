@@ -3,6 +3,7 @@ import logging
 from collections.abc import Iterator
 from pathlib import Path
 
+from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
 
 from src.core.types import ID3Keys
@@ -20,7 +21,8 @@ class MP3Services:
         self.__library_path: Path = libraryPath
         self.__paths: Iterator[Path] | None = None
         self.__current_file_path: Path = Path("")
-        self.__current_mp3: MP3 | None = None
+        self.__current_mp3_file: MP3 | None = None
+        self.__current_mp3_tags: ID3 | None = None
 
     @property
     def current_file_path(self) -> Path:
@@ -41,7 +43,8 @@ class MP3Services:
         """
         try:
             self.__current_file_path = next(self._get_paths())
-            self.__current_mp3 = MP3(self.__current_file_path)
+            self.__current_mp3_file = MP3(self.__current_file_path)
+            self.__current_mp3_tags = ID3(self.__current_file_path)
             try:
                 # Adding an empty ID3 tag if none exist for future manipulation
                 # self.__current_mp3.add_tags()
@@ -49,13 +52,13 @@ class MP3Services:
             except Exception:
                 logger.info(f"No ID3 header found for {self.__current_file_path}")
         except StopIteration:
-            self.__current_mp3 = None
+            self.__current_mp3_file = None
+            self.__current_mp3_tags = None
             return False
         except Exception as e:
-            logger.error(
-                f"Error loading {self.__current_file_path}: {e}", exc_info=True
-            )
-            self.__current_mp3 = None
+            logger.exception(e, stack_info=True)
+            self.__current_mp3_file = None
+            self.__current_mp3_file = None
             return self.load_next_file()
 
         return True
@@ -66,18 +69,20 @@ class MP3Services:
         Returns:
             Dictionary of ID3Keys and their frames.
         """
-        if self.__current_mp3 is None:
+        if self.__current_mp3_tags is None:
             return {}
 
         tags: dict[str, list[str]] = {}
 
         for frame in ID3Keys:
             try:
-                frames = list(map(str, self.__current_mp3.ID3.getall(frame.value)))
+                frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
                 if frames:
                     tags[frame.name] = frames
             except (IndexError, KeyError):
                 pass
+            except Exception as e:
+                logger.exception(e, stack_info=True)
 
         # for key, value in self.__current_mp3.tags.items():
         #    tags[key] = value
@@ -86,9 +91,9 @@ class MP3Services:
 
     def get_audio_properties(self) -> FileProperties | None:
         """Get audio properties like bitrate, sample rate, etc."""
-        if self.__current_mp3 is None:
+        if self.__current_mp3_file is None:
             return None
-        mpeg_info = self.__current_mp3.info
+        mpeg_info = self.__current_mp3_file.info
         file_stats = self.__current_file_path.stat()
         # only length is known by lsp in mpeg_info
         return FileProperties(

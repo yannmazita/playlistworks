@@ -21,7 +21,10 @@ ApplicationWindow {
             }
             Action {
                 text: qsTr("Scan Library")
-                onTriggered: console.log("Clicked Scan Library")
+                onTriggered: {
+                    scanProgressDialog.open();
+                    backend.scan_library();
+                }
             }
             Action {
                 text: qsTr("Quit")
@@ -48,5 +51,49 @@ ApplicationWindow {
 
     LibraryDirectoryDialog {
         id: libraryDirectoryDialog
+    }
+
+    Dialog {
+        id: scanProgressDialog
+        title: "Scanning Library"
+        modal: true
+        closePolicy: Dialog.NoAutoClose
+
+        Label {
+            text: "Scanning library files, please wait..."
+        }
+
+        BusyIndicator {
+            running: true
+        }
+
+        Component.onCompleted: {
+            backend.scanStarted.connect(function () {
+                scanProgressDialog.open();
+            });
+
+            backend.scanFinished.connect(function () {
+                scanProgressDialog.close();
+            });
+
+            backend.scanError.connect(function (errorMessage) {
+                scanProgressDialog.close();
+                errorDialog.text = errorMessage;
+                errorDialog.open();
+            });
+        }
+    }
+
+    Dialog {
+        id: errorDialog
+        title: "Error"
+        modal: true
+        property string text: ""
+
+        Label {
+            text: errorDialog.text
+        }
+
+        standardButtons: Dialog.Ok
     }
 }

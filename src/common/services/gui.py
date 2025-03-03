@@ -25,6 +25,10 @@ class GuiServices:
         self.directory_handler = DirectoryHandler(self.backend)
         self.track_table_model = TrackTableModel(self.backend.tracks_repository)
 
+        self.backend.scanStarted.connect(self._on_scan_started)
+        self.backend.scanFinished.connect(self._on_scan_finished)
+        self.backend.scanError.connect(self._on_scan_error)
+
         QQuickStyle.setStyle(settings.qt_style)
         self._setup_context_properties()
 
@@ -36,6 +40,20 @@ class GuiServices:
             "directoryHandler", self.directory_handler
         )
         self.engine.rootContext().setContextProperty("backend", self.backend)
+
+    def _on_scan_started(self):
+        """Handle scan started event."""
+        logger.info("Library scan started")
+
+    def _on_scan_finished(self):
+        """Handle scan finished event."""
+        logger.info("Library scan completed")
+        # Update the track model to reflect the new data
+        # self.track_table_model.refresh()
+
+    def _on_scan_error(self, error_message):
+        """Handle scan error event."""
+        logger.error(f"Scan error: {error_message}")
 
     def run(self):
         self.engine.load(Path(SRC_PATH) / "Main.qml")
