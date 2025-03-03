@@ -59,10 +59,9 @@ class MP3Services:
 
         for frame in ID3Keys:
             try:
-                if frame.value:
-                    frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
-                    if frames:
-                        tags[frame.value] = frames
+                frames = list(map(str, self.__current_mp3_tags.getall(frame.value)))
+                if frames:
+                    tags[frame.name] = frames
             except (IndexError, KeyError):
                 pass
 

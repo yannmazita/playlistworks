@@ -42,22 +42,22 @@ class TrackTableModel(QAbstractTableModel):
 
         if role == Qt.DisplayRole:  # type: ignore
             if index.column() == 0:
-                value = track.get_tag_display("title", default=track.path)
+                value = track.get_tag_display("TITLE")
                 return value
             elif index.column() == 1:
-                value = track.get_tag_display("artist")
+                value = track.get_tag_display("ARTIST")
                 return value
             elif index.column() == 2:
-                value = track.get_tag_display("album")
+                value = track.get_tag_display("ALBUM")
                 return value
         elif role == Qt.UserRole + 1:  # type: ignore
-            value = track.get_tag_display("title", default=track.path)
+            value = track.get_tag_display("TITLE")
             return value
         elif role == Qt.UserRole + 2:  # type: ignore
-            value = track.get_tag_display("artist")
+            value = track.get_tag_display("ARTIST")
             return value
         elif role == Qt.UserRole + 3:  # type: ignore
-            value = track.get_tag_display("album")
+            value = track.get_tag_display("ALBUM")
             return value
         else:
             return None

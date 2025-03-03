@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "common/components"
 import "features/player/components"
 import "features/tracks/components"
 
@@ -11,20 +12,41 @@ ApplicationWindow {
     height: 720
     title: "playlistworks"
 
-    menuBar: MenuBar {}
-    header: ToolBar {}
-    footer: TabBar {}
+    menuBar: MenuBar {
+        Menu {
+            title: qsTr("File")
+            Action {
+                text: qsTr("Add Library Folder")
+                onTriggered: libraryDirectoryDialog.open()
+            }
+            Action {
+                text: qsTr("Scan Library")
+                onTriggered: console.log("Clicked Scan Library")
+            }
+            Action {
+                text: qsTr("Quit")
+                onTriggered: Qt.quit()
+            }
+        }
+    }
+
+    header: ToolBar {
+        PlaybackControls {}
+    }
 
     ColumnLayout {
         id: mainColumn
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width
 
-        PlaybackControls {
-            Layout.alignment: Qt.AlignHCenter
-        }
         TrackTable {
             Layout.alignment: Qt.AlignHCenter
         }
+    }
+
+    footer: TabBar {}
+
+    LibraryDirectoryDialog {
+        id: libraryDirectoryDialog
     }
 }

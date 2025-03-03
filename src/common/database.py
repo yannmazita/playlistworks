@@ -43,7 +43,6 @@ def initialize_database(conn: sqlite3.Connection):
                 path TEXT UNIQUE NOT NULL,
                 fileprops TEXT NOT NULL,
                 tags TEXT NOT NULL,
-                tags_lower TEXT NOT NULL,
                 app_data TEXT NOT NULL,
                 raw_metadata TEXT
             )
@@ -63,22 +62,22 @@ def initialize_database(conn: sqlite3.Connection):
 
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_path ON tracks (path)")
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_lower_artist ON tracks (json_extract(tags_lower, '$.artist'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_artist ON tracks (json_extract(tags, '$.ARTIST'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_lower_artistsort ON tracks (json_extract(tags_lower, '$.artistsort'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_artistsort ON tracks (json_extract(tags, '$.ARTIST_SORT'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_lower_album ON tracks (json_extract(tags_lower, '$.album'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_album ON tracks (json_extract(tags, '$.ALBUM'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_lower_albumartistsort ON tracks (json_extract(tags_lower, '$.albumartistsort'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_albumartistsort ON tracks (json_extract(tags, '$.ALBUM_ARTIST_SORT'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_lower_title ON tracks (json_extract(tags_lower, '$.title'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_title ON tracks (json_extract(tags, '$.TITLE'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_lower_genre ON tracks (json_extract(tags_lower, '$.genre'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_genre ON tracks (json_extract(tags, '$.GENRE'))"
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_app_data_play_count ON tracks (json_extract(app_data, '$.play_count'))"

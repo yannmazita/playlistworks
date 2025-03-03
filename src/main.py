@@ -10,6 +10,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from src.common.database import get_db_connection, initialize_database
 from src.common.utils.path import get_component_paths
 from src.common.utils.settings import settings
+from src.common.handlers import DirectoryHandler
 from src.features.tracks.models import TrackTableModel
 from src.features.tracks.repository import TracksRepository
 
@@ -35,7 +36,10 @@ def main():
     tracks_repository = TracksRepository(connection)
     track_table_model = TrackTableModel(tracks_repository)
 
+    directory_handler = DirectoryHandler()
+
     engine.rootContext().setContextProperty("trackTableModel", track_table_model)
+    engine.rootContext().setContextProperty("directoryHandler", directory_handler)
     engine.load(Path(__file__).parent / "Main.qml")
 
     if not engine.rootObjects():

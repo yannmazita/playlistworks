@@ -7,12 +7,18 @@ TableView {
     columnSpacing: 1
     rowSpacing: 1
     clip: true
-    width: 600
-    height: 400
+    width: mainWindow.width
+    height: mainWindow.height - 200
 
     model: trackTableModel
 
-    delegate: Text {
-        text: display
+    delegate: Rectangle {
+        implicitWidth: 500
+        implicitHeight: 50
+        border.width: 1
+
+        Text {
+            text: display
+        }
     }
 }

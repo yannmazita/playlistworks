@@ -1,8 +1,7 @@
 # src.features.tracks.schemas
 from typing import Any
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 from pathlib import Path
-import time
 
 
 class FileProperties(BaseModel):
@@ -35,26 +34,12 @@ class Track(BaseModel):
     tags: dict[str, list[str]] = Field(
         default_factory=dict, description="All tags from the file as key-value pairs"
     )
-    tags_lower: dict[str, list[str]] = Field(
-        default_factory=dict,
-        description="Lowercase versions of all tags for case-insensitive search",
-    )
     app_data: AppData = Field(description="Application data")
 
     # Original raw metadata (for debugging/reference)
     raw_metadata: dict[str, Any] | None = Field(
         default=None, description="Original raw metadata from the file"
     )
-
-    @model_validator(mode="after")
-    def normalize_tags(self) -> "Track":
-        """Make sure tags_lower has lowercase versions of all tags"""
-        if not self.tags_lower and self.tags:
-            self.tags_lower = {
-                k: [v.lower() if isinstance(v, str) else v for v in vals]
-                for k, vals in self.tags.items()
-            }
-        return self
 
     @field_validator("path")
     @classmethod
@@ -65,15 +50,8 @@ class Track(BaseModel):
     # Helper methods for access
     def get_tag(self, name: str, default: list[str] | None = None) -> list[str] | None:
         """Get a tag value, case-insensitive"""
-        # Try exact match first for speed
         if name in self.tags:
             return self.tags[name]
-
-        # Try case-insensitive match
-        name_lower = name.lower()
-        for k in self.tags:
-            if k.lower() == name_lower:
-                return self.tags[k]
 
         return default
 
