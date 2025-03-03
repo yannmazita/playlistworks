@@ -21,14 +21,14 @@ def get_db_connection() -> sqlite3.Connection:
             try:
                 return re.search(pattern, text, re.IGNORECASE) is not None
             except Exception as e:
-                logger.error(f"REGEXP error: {e}, pattern={pattern}, text={text}")
+                logger.exception(e, stack_info=True)
                 return False
 
         conn.create_function("REGEXP", 2, regexp_function)
         logger.info(f"Connected to SQLite database: {settings.database_filename}")
         return conn
     except sqlite3.Error as e:
-        logger.error(f"Error connecting to database: {e}", exc_info=True)
+        logger.exception(e, stack_info=True)
         raise
 
 
@@ -92,7 +92,7 @@ def initialize_database(conn: sqlite3.Connection):
         conn.commit()
         logger.info("Database initialized successfully.")
     except sqlite3.Error as e:
-        logger.error(f"Error initializing database: {e}", exc_info=True)
+        logger.exception(e, stack_info=True)
         conn.rollback()
         raise
 

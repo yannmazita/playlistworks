@@ -26,5 +26,5 @@ class DirectoryHandler(QObject):
         try:
             self.backend.set_library_path(Path(path))
             logger.info(f"Library path set to: {path}")
-        except Exception:
-            logger.error("Error setting library path", exc_info=True)
+        except Exception as e:
+            logger.exception(e, stack_info=True)

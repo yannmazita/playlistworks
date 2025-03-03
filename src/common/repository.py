@@ -29,10 +29,7 @@ class DatabaseRepository(Generic[T]):
                 cursor.execute(query, params)
                 return cursor.lastrowid  # Return the ID of last insert
         except sqlite3.Error as e:
-            self.logger.error(
-                f"Error executing query: {query} with params {params}: {e}",
-                exc_info=True,
-            )
+            self.logger.exception(e, stack_info=True)
             raise
 
     def _execute_select_query(
@@ -48,10 +45,7 @@ class DatabaseRepository(Generic[T]):
                 else:
                     return cursor.fetchall()
         except sqlite3.Error as e:
-            self.logger.error(
-                f"Error executing query: {query} with params {params}: {e}",
-                exc_info=True,
-            )
+            self.logger.exception(e, stack_info=True)
             raise
 
     def _row_to_model(self, row: sqlite3.Row | tuple) -> T:
@@ -60,7 +54,7 @@ class DatabaseRepository(Generic[T]):
             row_dict = {key: row[key] for key in row.keys()}
             # Do not forget to add json fields here
             # Todo: maybe have a single 'json_data' field in models
-            for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+            for key in ("fileprops", "tags", "app_data", "raw_metadata"):
                 if key in row_dict and row_dict[key] is not None:
                     row_dict[key] = json.loads(row_dict[key])
         elif isinstance(row, tuple):
@@ -141,7 +135,7 @@ class DatabaseRepository(Generic[T]):
         # Serialize JSON fields
         # Do not forget to add json fields here
         # Todo: maybe have a single 'json_data' field in models
-        for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+        for key in ("fileprops", "tags", "app_data", "raw_metadata"):
             if key in data and data[key] is not None:
                 data[key] = json.dumps(data[key])
 
@@ -158,7 +152,7 @@ class DatabaseRepository(Generic[T]):
         # Serialize JSON fields
         # Do not forget to add json fields here
         # Todo: maybe have a single 'json_data' field in models
-        for key in ("fileprops", "tags", "tags_lower", "app_data", "raw_metadata"):
+        for key in ("fileprops", "tags", "app_data", "raw_metadata"):
             if key in data and data[key] is not None:
                 data[key] = json.dumps(data[key])
 

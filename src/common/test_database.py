@@ -65,7 +65,7 @@ def test_get_db_connection_error():
             with pytest.raises(sqlite3.Error):
                 get_db_connection()
 
-            mock_logger.error.assert_called_once()
+            mock_logger.exception.assert_called_once()
 
 
 def test_initialize_database(db_connection):
