@@ -1,4 +1,5 @@
 # src.features.tracks.schemas
+from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from pathlib import Path
 
@@ -29,7 +30,7 @@ class AppData(BaseModel):
 class Track(BaseModel):
     path: str = Field(description="Path to the audio file")
     fileprops: FileProperties = Field(description="File properties")
-    tags: dict[str, list[str]] = Field(
+    tags: dict[str, list[Any]] = Field(
         default_factory=dict, description="All tags from the file as key-value pairs"
     )
     app_data: AppData = Field(description="Application data")
