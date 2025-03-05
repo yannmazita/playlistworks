@@ -1,4 +1,4 @@
-# src.common.test_database
+# tests.common.test_database
 import re
 import sqlite3
 import pytest

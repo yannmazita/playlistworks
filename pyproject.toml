@@ -21,6 +21,9 @@ pytest = "^8.3.4"
 ruff = "^0.9.7"
 debugpy = "^1.8.12"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
 
 [build-system]
 requires = ["poetry-core"]

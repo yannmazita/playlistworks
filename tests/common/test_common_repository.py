@@ -1,4 +1,4 @@
-# src.common.test_repository
+# tests.common.test_repository
 import re
 import sqlite3
 import json

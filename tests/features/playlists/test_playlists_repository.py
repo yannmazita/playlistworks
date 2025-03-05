@@ -1,4 +1,4 @@
-# src.features.playlists.test_repository
+# tests.features.playlists.test_repository
 import re
 import sqlite3
 import pytest

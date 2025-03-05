@@ -1,4 +1,4 @@
-# src.features.tracks.test_repository
+# tests.features.tracks.test_repository
 import re
 import sqlite3
 import pytest
