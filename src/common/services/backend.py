@@ -6,7 +6,6 @@ from sqlite3 import Connection
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from src.features.tracks.repository import TracksRepository
-from src.features.tracks.services.mp3 import MP3Services
 from src.features.tracks.services.tracks import TracksServices
 from src.common.services.backend_worker import BackendWorker
 
@@ -27,7 +26,6 @@ class BackendServices(QObject):
         super().__init__()
         self.library_path: Path | None = None
         self.tracks_repository: TracksRepository = TracksRepository(connection)
-        self.mp3_services: MP3Services | None = None
         self.tracks_services: TracksServices | None = None
 
         # Setup worker thread
@@ -35,7 +33,7 @@ class BackendServices(QObject):
         self.worker = BackendWorker()
         self.worker.moveToThread(self.worker_thread)
 
-        # Connect worker signals to scan signals for forwarding
+        # Connect worker signals to local signals for forwarding
         self.worker.scanStarted.connect(self.scanStarted)
         self.worker.scanProgress.connect(self.scanProgress)
         self.worker.scanFinished.connect(self.scanFinished)
@@ -54,9 +52,8 @@ class BackendServices(QObject):
 
     def _initialize_services(self):
         if self.library_path:
-            self.mp3_services = MP3Services(self.library_path)
             self.tracks_services = TracksServices(
-                self.tracks_repository, self.mp3_services
+                self.library_path, self.tracks_repository
             )
 
     def set_library_path(self, path: Path):

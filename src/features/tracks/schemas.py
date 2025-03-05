@@ -1,5 +1,4 @@
 # src.features.tracks.schemas
-from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from pathlib import Path
 
@@ -8,7 +7,6 @@ class FileProperties(BaseModel):
     """File properties (not from tags)"""
 
     size: int = Field(description="File size in bytes")
-    format: str = Field(description="File format (mp3, flac, ogg, etc.)")
     bitrate: int = Field(description="Bitrate in kbps")
     sample_rate: int = Field(description="Sample rate in Hz")
     channels: int = Field(description="Number of audio channels")
@@ -36,11 +34,6 @@ class Track(BaseModel):
     )
     app_data: AppData = Field(description="Application data")
 
-    # Original raw metadata (for debugging/reference)
-    raw_metadata: dict[str, Any] | None = Field(
-        default=None, description="Original raw metadata from the file"
-    )
-
     @field_validator("path")
     @classmethod
     def normalize_path(cls, v: str) -> str:
@@ -51,7 +44,10 @@ class Track(BaseModel):
     def get_tag(self, name: str, default: list[str] | None = None) -> list[str] | None:
         """Get a tag value, case-insensitive"""
         if name in self.tags:
-            return self.tags[name]
+            if isinstance(self.tags, dict):
+                return self.tags[name]
+            else:
+                return None
 
         return default
 

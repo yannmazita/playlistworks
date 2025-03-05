@@ -5,7 +5,6 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 from src.common.database import get_db_connection
 from src.features.tracks.repository import TracksRepository
-from src.features.tracks.services.mp3 import MP3Services
 from src.features.tracks.services.tracks import TracksServices
 
 logger = logging.getLogger(__name__)
@@ -37,10 +36,7 @@ class BackendWorker(QObject):
             # Using thread-specific connection (and repository) because sqlite is not thread-safe
             connection = get_db_connection()
             self.tracks_repository = TracksRepository(connection)
-            self.mp3_services = MP3Services(library_path)
-            self.tracks_services = TracksServices(
-                self.tracks_repository, self.mp3_services
-            )
+            self.tracks_services = TracksServices(library_path, self.tracks_repository)
             return True
         except Exception as e:
             self.scanError.emit(f"Error initializing services: {str(e)}")
@@ -72,7 +68,7 @@ class BackendWorker(QObject):
             self.scanFinished.emit()
 
         except Exception as e:
-            logger.exception(e, stack_info=True)
             self.scanError.emit(f"Error scanning library: {str(e)}")
+            logger.exception(e, stack_info=True)
         finally:
             self.is_running = False

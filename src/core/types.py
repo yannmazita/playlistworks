@@ -1,6 +1,8 @@
 # src.core.types
 from enum import Enum
 
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".wma", ".opus"}
+
 
 class ID3Keys(Enum):
     TITLE = "TIT2"

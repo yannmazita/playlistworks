@@ -25,7 +25,6 @@ class GuiServices:
         self.directory_handler = DirectoryHandler(self.backend)
         self.track_table_model = TrackTableModel(self.backend.tracks_repository)
 
-        self.backend.scanStarted.connect(self._on_scan_started)
         self.backend.scanFinished.connect(self._on_scan_finished)
         self.backend.scanError.connect(self._on_scan_error)
 
@@ -41,19 +40,15 @@ class GuiServices:
         )
         self.engine.rootContext().setContextProperty("backend", self.backend)
 
-    def _on_scan_started(self):
-        """Handle scan started event."""
-        logger.info("Library scan started")
-
     def _on_scan_finished(self):
         """Handle scan finished event."""
-        logger.info("Library scan completed")
-        # Update the track model to reflect the new data
-        # self.track_table_model.refresh()
+        logger.info("Library scan finished, refreshing track table model")
+        self.track_table_model.refresh()
 
-    def _on_scan_error(self, error_message):
+    def _on_scan_error(self):
         """Handle scan error event."""
-        logger.error(f"Scan error: {error_message}")
+        logger.info("Library scan suspended, refreshing track table model")
+        self.track_table_model.refresh()
 
     def run(self):
         self.engine.load(Path(SRC_PATH) / "Main.qml")

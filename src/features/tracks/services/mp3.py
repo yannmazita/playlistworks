@@ -17,8 +17,8 @@ class MP3Services:
     Class for MP3 specific operations.
     """
 
-    def __init__(self, libraryPath: Path):
-        self.__library_path: Path = libraryPath
+    def __init__(self, library_path: Path):
+        self.__library_path: Path = library_path
         self.__paths: Iterator[Path] | None = None
         self.__current_file_path: Path = Path("")
         self.__current_mp3_file: MP3 | None = None
@@ -98,7 +98,6 @@ class MP3Services:
         # only length is known by lsp in mpeg_info
         return FileProperties(
             size=file_stats.st_size,
-            format="mp3",
             bitrate=mpeg_info.bitrate // 1000,  # Convert to kbps
             sample_rate=mpeg_info.sample_rate,
             channels=mpeg_info.channels,

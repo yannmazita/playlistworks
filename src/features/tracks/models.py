@@ -83,3 +83,8 @@ class TrackTableModel(QAbstractTableModel):
         }
         logger.debug(f"Role names: {roles}")
         return roles
+
+    def refresh(self):
+        """Reload data from the repository"""
+        logger.debug("Refreshing track table model")
+        self.load_data()

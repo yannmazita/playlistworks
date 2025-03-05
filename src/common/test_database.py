@@ -88,9 +88,7 @@ def test_initialize_database(db_connection):
     assert "path" in columns
     assert "fileprops" in columns
     assert "tags" in columns
-    assert "tags_lower" in columns
     assert "app_data" in columns
-    assert "raw_metadata" in columns
 
     # Check constraints
     assert columns["id"]["pk"] == 1  # Primary key
@@ -111,9 +109,9 @@ def test_initialize_database(db_connection):
     indexes = [row["name"] for row in cursor.fetchall()]
 
     assert "idx_path" in indexes
-    assert "idx_tags_lower_artist" in indexes
-    assert "idx_tags_lower_album" in indexes
-    assert "idx_tags_lower_title" in indexes
+    assert "idx_tags_artist" in indexes
+    assert "idx_tags_album" in indexes
+    assert "idx_tags_title" in indexes
     assert "idx_app_data_rating" in indexes
 
 
