@@ -15,8 +15,8 @@ class BackendWorker(QObject):
 
     # Signals for library scanning
     scanStarted = Signal()
-    scanProgress = Signal(int, int)  # current, total
-    scanFinished = Signal()
+    scanProgress = Signal(int)  # Number of audio files added
+    scanFinished = Signal(list)  # List of non-critical errors when scanning files
     scanError = Signal(str)
 
     def __init__(self):
@@ -43,8 +43,8 @@ class BackendWorker(QObject):
             logger.exception(e, stack_info=True)
             return False
 
-    @Slot(object)
-    def scan_library(self, library_path):
+    @Slot(Path)  # type: ignore
+    def scan_library(self, library_path: Path):
         """Scan the library and populate the database with track information."""
         if self.is_running:
             logger.warning("Already running a scan operation")
@@ -64,11 +64,13 @@ class BackendWorker(QObject):
                 return
 
             # Execute the scan
-            self.tracks_services.populate_database()
-            self.scanFinished.emit()
+            error_paths = self.tracks_services.populate_database()
+            self.scanFinished.emit(error_paths)
+            return
 
         except Exception as e:
             self.scanError.emit(f"Error scanning library: {str(e)}")
             logger.exception(e, stack_info=True)
+            return
         finally:
             self.is_running = False

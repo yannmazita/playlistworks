@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 class BackendServices(QObject):
     # Forward signals from worker
     scanStarted = Signal()
-    scanProgress = Signal(int, int)
-    scanFinished = Signal()
+    scanProgress = Signal(int)
+    scanFinished = Signal(list)
     scanError = Signal(str)
 
     # Signal to trigger scan in worker thread
@@ -56,7 +56,9 @@ class BackendServices(QObject):
                 self.library_path, self.tracks_repository
             )
 
-    def set_library_path(self, path: Path):
+    @Slot(str)  # type: ignore
+    def set_library_path(self, library_path: str):
+        path = Path(library_path)
         if not path.is_dir():
             raise ValueError(f"Invalid library path: {path}")
         self.library_path = path

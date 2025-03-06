@@ -40,10 +40,12 @@ class GuiServices:
         )
         self.engine.rootContext().setContextProperty("backend", self.backend)
 
-    def _on_scan_finished(self):
+    def _on_scan_finished(self, error_paths: list[tuple[Path, Exception]]):
         """Handle scan finished event."""
         logger.info("Library scan finished, refreshing track table model")
         self.track_table_model.refresh()
+        for path, error in error_paths:
+            logger.error(f"Failed to scan: {path} - {error}")
 
     def _on_scan_error(self):
         """Handle scan error event."""
