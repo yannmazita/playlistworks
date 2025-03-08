@@ -28,6 +28,7 @@ class AppData(BaseModel):
 
 
 class Track(BaseModel):
+    id: int | None = Field(default=None)
     path: str = Field(description="Path to the audio file")
     fileprops: FileProperties = Field(description="File properties")
     tags: dict[str, list[Any]] = Field(
