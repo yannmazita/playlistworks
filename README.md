@@ -29,12 +29,11 @@ Work in progress! Very early stage and actively developed.
 
 - PySide6 (QT6 Python bindings)
 - mutagen (Audio metadata)
-- pygobject (GObject Python bindings)
 
 ## Roadmap (MVP)
 - Metadata extraction and database: ✅
+- Audio file player: ✅
 - GUI: 🕙
-- Audio file player: ❌
 - Regex dynamic playlists: ❌
 
 ## Goals

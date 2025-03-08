@@ -39,6 +39,10 @@ class GuiServices:
             "directoryHandler", self.directory_handler
         )
         self.engine.rootContext().setContextProperty("backend", self.backend)
+        if self.backend.playback_service:
+            self.engine.rootContext().setContextProperty(
+                "playbackService", self.backend.playback_service
+            )
 
     def _on_scan_finished(self, error_paths: list[tuple[Path, Exception]]):
         """Handle scan finished event."""

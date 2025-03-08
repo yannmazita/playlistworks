@@ -1,35 +1,55 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
+import QtMultimedia
 
-RowLayout {
+Row {
+    spacing: 10
+    property int playbackValue : 3
+
+    Component.onCompleted: {
+      playButton.text = qsTr("Play");
+    }
+
+    Connections {
+      target: playbackService
+      function onPlaybackStateChanged(state) {
+        if (playbackValue !== state) {
+          playbackValue = state;
+          if (playbackValue !== 1) {
+            playButton.text = qsTr("Play");
+          } else {
+            playButton.text = qsTr("Pause");
+          }
+        }
+      }
+    }
+
     Button {
-        id: playPauseButton
-        text: "Play/Pause"
+        id: playButton
         onClicked: {
-            console.log("Clicked Play/Pause button");
+            if (trackTableModel.selectedTrackIndex !== -1) {
+                let trackPath = trackTableModel.data(
+                    trackTableModel.index(trackTableModel.selectedTrackIndex, 0),
+                    Qt.UserRole + 4
+                );
+                playbackService.toggle_playback(trackPath);
+            } else if (playbackService.currentTrackPath) {
+                playbackService.toggle_playback();
+            }
         }
     }
 
     Button {
-        id: stopPause
-        text: "Stop"
-        onClicked: {
-            console.log("Clicked Stop button");
-        }
-    }
-
-    Button {
-        id: skipBack
-        text: "Back"
+        id: skipBackButton
+        text: qsTr("Back")
         onClicked: {
             console.log("Clicked Back button");
         }
     }
 
     Button {
-        id: skipForward
-        text: "Forward"
+        id: skipForwardButton
+        text: qsTr("Forward")
         onClicked: {
             console.log("Clicked Forward button");
         }

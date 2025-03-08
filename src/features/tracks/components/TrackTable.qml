@@ -13,12 +13,17 @@ TableView {
     model: trackTableModel
 
     delegate: Rectangle {
+        required property int row
         implicitWidth: 500
         implicitHeight: 50
         border.width: 1
+        color: model.row === trackTableModel.selectedTrackIndex ? "lightblue" : "white"
 
         Text {
             text: display
         }
+    }
+    onCurrentRowChanged: {
+        trackTableModel.setSelectedTrack(currentRow)
     }
 }
