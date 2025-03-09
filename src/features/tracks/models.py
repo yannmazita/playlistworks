@@ -21,7 +21,6 @@ class TrackTableModel(QAbstractTableModel):
         self.repository = repository
         self.tracks: list[Track] = []
         self.load_data()
-        self._selected_track_index = -1
 
     def load_data(self):
         self.beginResetModel()

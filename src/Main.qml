@@ -12,6 +12,15 @@ ApplicationWindow {
     height: 600
     title: "playlistworks"
 
+    property int selectedRow: -1
+
+    Connections {
+        target: playbackService
+
+        function onRowSelectedChanged(row) {
+        }
+    }
+
     menuBar: MenuBar {
         Menu {
             title: qsTr("File")
@@ -65,15 +74,15 @@ ApplicationWindow {
         }
 
         Component.onCompleted: {
-            backend.scanStarted.connect(function () {
+            backend.scanStarted.connect(() => {
                 scanProgressDialog.open();
             });
 
-            backend.scanFinished.connect(function () {
+            backend.scanFinished.connect(() => {
                 scanProgressDialog.close();
             });
 
-            backend.scanError.connect(function (errorMessage) {
+            backend.scanError.connect(errorMessage => {
                 scanProgressDialog.close();
                 errorDialog.text = errorMessage;
                 errorDialog.open();
