@@ -4,26 +4,42 @@ import QtQuick.Layouts
 
 TableView {
     id: trackTable
-    columnSpacing: 1
-    rowSpacing: 1
+    Layout.fillWidth: true
+    Layout.fillHeight: true
     clip: true
-    width: mainWindow.width
-    height: mainWindow.height - 200
 
     model: trackTableModel
 
-    delegate: Rectangle {
-        required property int row
-        implicitWidth: 500
-        implicitHeight: 50
-        border.width: 1
-        color: model.row === trackTableModel.selectedTrackIndex ? "lightblue" : "white"
+    property int selectedRow: -1
 
-        Text {
-            text: display
+    Connections {
+        target: playbackService
+
+        function onRowSelectedChanged(row) {
         }
     }
-    onCurrentRowChanged: {
-        trackTableModel.setSelectedTrack(currentRow)
+
+    delegate: Rectangle {
+        required property int row
+        implicitWidth: Math.max(100, trackTable.width / 3)
+        implicitHeight: 40
+        color: trackTable.selectedRow === row ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
+        border.color: "#e0e0e0"
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            text: display
+            elide: Text.ElideRight
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                trackTable.selectedRow = row;
+                playbackService.handleRowClick(row);
+            }
+        }
     }
 }

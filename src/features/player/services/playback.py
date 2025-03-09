@@ -3,6 +3,8 @@ import logging
 from PySide6.QtCore import QObject, Signal, Slot, QUrl, Property
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
+from src.features.tracks.models import TrackTableModel
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +16,11 @@ class PlaybackService(QObject):
 
     currentTrackChanged = Signal(str)
     playbackStateChanged = Signal(QMediaPlayer.PlaybackState)
+    rowSelectedChanged = Signal(int)
 
-    def __init__(self):
+    def __init__(self, track_model: TrackTableModel):
         super().__init__()
+        self._track_model = track_model
 
         self.audio_output = QAudioOutput()
         self.player = QMediaPlayer()
@@ -107,3 +111,10 @@ class PlaybackService(QObject):
                 self.pause()
             elif self._current_track_path:
                 self.play()
+
+    @Slot(int)  # type: ignore
+    def handleRowClick(self, row):
+        """Handle when a row is clicked"""
+        if 0 <= row < self._track_model.rowCount():
+            self.rowSelectedChanged.emit(row)
+            logging.debug(f"Row {row} clicked")

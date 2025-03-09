@@ -4,6 +4,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot
 
 from src.common.database import get_db_connection
+from src.features.tracks.models import TrackTableModel
 from src.features.tracks.repository import TracksRepository
 from src.features.tracks.services.tracks import TracksServices
 
@@ -21,8 +22,8 @@ class BackendWorker(QObject):
 
     def __init__(self):
         super().__init__()
+        self.track_model = None
         self.tracks_repository = None
-        self.mp3_services = None
         self.tracks_services = None
         self.is_running = False
 
@@ -36,7 +37,10 @@ class BackendWorker(QObject):
             # Using thread-specific connection (and repository) because sqlite is not thread-safe
             connection = get_db_connection()
             self.tracks_repository = TracksRepository(connection)
-            self.tracks_services = TracksServices(library_path, self.tracks_repository)
+            self.track_model = TrackTableModel(self.tracks_repository)
+            self.tracks_services = TracksServices(
+                self.track_model, library_path, self.tracks_repository
+            )
             return True
         except Exception as e:
             self.scanError.emit(f"Error initializing services: {str(e)}")

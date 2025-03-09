@@ -5,9 +5,11 @@ from pathlib import Path
 import time
 from typing import Callable
 
+from PySide6.QtCore import QObject
 from mutagen._file import File, FileType
 from mutagen._util import MutagenError
 
+from src.features.tracks.models import TrackTableModel
 from src.features.tracks.schemas import (
     AppData,
     Track,
@@ -18,7 +20,7 @@ from src.features.tracks.utils.metadata import get_audio_properties, get_tags
 logger = logging.getLogger(__name__)
 
 
-class TracksServices:
+class TracksServices(QObject):
     """
     Class for track-related operations.
 
@@ -29,10 +31,12 @@ class TracksServices:
 
     def __init__(
         self,
+        track_model: TrackTableModel,
         library_path: Path,
         repository: TracksRepository,
         get_time: Callable[[], float] = time.time,
     ) -> None:
+        self._track_model = track_model
         self.library_path = library_path
         self.repository = repository
         self._get_time = get_time

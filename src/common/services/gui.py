@@ -11,7 +11,6 @@ from src.common.handlers import DirectoryHandler
 from src.common.services.backend import BackendServices
 from src.common.utils.path import SRC_PATH
 from src.common.utils.settings import settings
-from src.features.tracks.models import TrackTableModel
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +20,7 @@ class GuiServices:
         self.app = QGuiApplication(sys.argv)
         self.engine = QQmlApplicationEngine()
         self.backend = backend
-
         self.directory_handler = DirectoryHandler(self.backend)
-        self.track_table_model = TrackTableModel(self.backend.tracks_repository)
 
         self.backend.scanFinished.connect(self._on_scan_finished)
         self.backend.scanError.connect(self._on_scan_error)
@@ -33,12 +30,12 @@ class GuiServices:
 
     def _setup_context_properties(self):
         self.engine.rootContext().setContextProperty(
-            "trackTableModel", self.track_table_model
-        )
-        self.engine.rootContext().setContextProperty(
             "directoryHandler", self.directory_handler
         )
         self.engine.rootContext().setContextProperty("backend", self.backend)
+        self.engine.rootContext().setContextProperty(
+            "trackTableModel", self.backend.track_model
+        )
         if self.backend.playback_service:
             self.engine.rootContext().setContextProperty(
                 "playbackService", self.backend.playback_service
@@ -47,14 +44,14 @@ class GuiServices:
     def _on_scan_finished(self, error_paths: list[tuple[Path, Exception]]):
         """Handle scan finished event."""
         logger.info("Library scan finished, refreshing track table model")
-        self.track_table_model.refresh()
+        self.backend.track_model.refresh()
         for path, error in error_paths:
             logger.error(f"Failed to scan: {path} - {error}")
 
     def _on_scan_error(self):
         """Handle scan error event."""
         logger.info("Library scan suspended, refreshing track table model")
-        self.track_table_model.refresh()
+        self.backend.track_model.refresh()
 
     def run(self):
         self.engine.load(Path(SRC_PATH) / "Main.qml")

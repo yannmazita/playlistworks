@@ -8,8 +8,8 @@ import "features/tracks/components"
 ApplicationWindow {
     id: mainWindow
     visible: true
-    width: 1280
-    height: 720
+    width: 800
+    height: 600
     title: "playlistworks"
 
     menuBar: MenuBar {
@@ -39,15 +39,12 @@ ApplicationWindow {
 
     ColumnLayout {
         id: mainColumn
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: parent.width
+        anchors.fill: parent
 
-        TrackTable {
-            Layout.alignment: Qt.AlignHCenter
-        }
+        TrackTable {}
     }
 
-    footer: TabBar {}
+    footer: ToolBar {}
 
     LibraryDirectoryDialog {
         id: libraryDirectoryDialog
