@@ -30,19 +30,17 @@ class PlaybackService(QObject):
 
         self.player.playbackStateChanged.connect(self._on_playback_state_changed)
 
-    @property
-    @Property(str, notify=currentTrackChanged, final=False)  # type: ignore
+    @Property(str, notify=currentTrackChanged)  # type: ignore
     def currentTrackPath(self):
         """Get the current track path"""
         return self._current_track_path
 
-    @currentTrackPath.setter
-    def currentTrackPath(self, path):
+    @Slot(str)  # type: ignore
+    def set_current_track_path(self, path: str):
         if self._current_track_path != path:
             self._current_track_path = path
             self.currentTrackChanged.emit(path)
 
-    @property
     @Property(QMediaPlayer.PlaybackState, notify=playbackStateChanged)  # type: ignore
     def playbackState(self):
         """Get the playback state"""
@@ -64,7 +62,7 @@ class PlaybackService(QObject):
                     or self.player.playbackState()
                     == QMediaPlayer.PlaybackState.StoppedState
                 ):
-                    self.currentTrackPath = path
+                    self.set_current_track_path(path)
                     file_url = QUrl.fromLocalFile(path)
                     self.player.setSource(file_url)
                     logger.info(f"Playing track: {path}")
