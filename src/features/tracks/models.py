@@ -6,6 +6,8 @@ from PySide6.QtCore import (
     QPersistentModelIndex,
     Qt,
     Signal,
+    Property,
+    Slot,
 )
 
 from src.features.tracks.repository import Track, TracksRepository
@@ -14,13 +16,25 @@ logger = logging.getLogger(__name__)
 
 
 class TrackTableModel(QAbstractTableModel):
-    selectedRowChanged = Signal(int)
+    selectedTrackIndexChanged = Signal(int)
 
     def __init__(self, repository: TracksRepository):
         QAbstractTableModel.__init__(self)
         self.repository = repository
         self.tracks: list[Track] = []
+        self._selected_track_index = -1
         self.load_data()
+
+    @Property(int, notify=selectedTrackIndexChanged)  # type: ignore
+    def selectedTrackIndex(self):
+        return self._selected_track_index
+
+    @Slot(int)  # type: ignore
+    def set_selected_track_index(self, index: int):
+        if self._selected_track_index != index:
+            self._selected_track_index = index
+            self.selectedTrackIndexChanged.emit(self._selected_track_index)
+            logger.debug(f"Selected track index set to: {index}")
 
     def load_data(self):
         self.beginResetModel()

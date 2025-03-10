@@ -12,15 +12,6 @@ ApplicationWindow {
     height: 600
     title: "playlistworks"
 
-    property int selectedRow: -1
-
-    Connections {
-        target: playbackService
-
-        function onRowSelectedChanged(row) {
-        }
-    }
-
     menuBar: MenuBar {
         Menu {
             title: qsTr("File")

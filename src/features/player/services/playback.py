@@ -16,7 +16,6 @@ class PlaybackService(QObject):
 
     currentTrackChanged = Signal(str)
     playbackStateChanged = Signal(QMediaPlayer.PlaybackState)
-    rowSelectedChanged = Signal(int)
 
     def __init__(self, track_model: TrackTableModel):
         super().__init__()
@@ -82,7 +81,7 @@ class PlaybackService(QObject):
     def pause(self):
         """Pause playback."""
         if self.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
-            logger.debug("Pausing playback")
+            logger.info("Pausing playback")
             self.player.pause()
 
     @Slot()
@@ -116,5 +115,5 @@ class PlaybackService(QObject):
     def handleRowClick(self, row):
         """Handle when a row is clicked"""
         if 0 <= row < self._track_model.rowCount():
-            self.rowSelectedChanged.emit(row)
+            self._track_model.set_selected_track_index(row)
             logging.debug(f"Row {row} clicked")

@@ -27,9 +27,9 @@ Row {
     Button {
         id: playButton
         onClicked: {
-            if (mainWindow.selectedRow !== -1) {
+            if (trackTableModel.selectedTrackIndex !== -1) {
                 let trackPath = trackTableModel.data(
-                    trackTableModel.index(mainWindow.selectedRow, 0),
+                    trackTableModel.index(trackTableModel.selectedTrackIndex, 0),
                     Qt.UserRole + 4
                 );
                 playbackService.toggle_playback(trackPath);
