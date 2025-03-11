@@ -12,23 +12,44 @@ logger = logging.getLogger(__name__)
 
 
 class BackendWorker(QObject):
-    """Worker object that will be moved to a separate thread to handle long-running operations."""
+    """Performs tasks in a separate thread.
 
-    # Signals for library scanning
+    Signals:
+        scanStarted: Emitted when the library scan starts.
+        scanProgress: Emitted during the scan to indicate progress.
+        scanFinished: Emitted when the scan finishes.
+        scanError: Emitted if an error occurs during the scan.
+
+    Attributes:
+        track_model: Model for the GUI track table.
+        tracks_repository: Repository for track database operations.
+        tracks_services: Service for track-related logic.
+        is_running: A boolean, True if scan is running
+    """
+
     scanStarted = Signal()
     scanProgress = Signal(int)  # Number of audio files added
     scanFinished = Signal(list)  # List of non-critical errors when scanning files
     scanError = Signal(str)
 
     def __init__(self):
+        """Initializes the BackendWorker."""
         super().__init__()
         self.track_model = None
         self.tracks_repository = None
         self.tracks_services = None
         self.is_running = False
 
-    def initialize_services(self, library_path: Path):
-        """Initialize services with the given library path."""
+    def initialize_services(self, library_path: Path) -> bool:
+        """Initialize services with the given library path.
+
+        Args:
+            library_path (Path): The path to the music library.
+
+        Returns:
+            bool: True if initialization was successful. False if library_path is invalid
+                or if there was an exception.
+        """
         if not library_path.is_dir():
             self.scanError.emit(f"Invalid library path: {library_path}")
             return False
@@ -49,7 +70,17 @@ class BackendWorker(QObject):
 
     @Slot(Path)  # type: ignore
     def scan_library(self, library_path: Path):
-        """Scan the library and populate the database with track information."""
+        """Scans the library and populates the database with track information.
+
+        Emits `scanStarted` when the scan begins.
+        Emits 'scanProgress' with number of audio files added.
+        Emits `scanFinished` when the scan is complete, along with a list of
+        any non-critical errors encountered.
+        Emits `scanError` if a critical error occurs.
+
+        Args:
+            library_path (Path): The path to the music library.
+        """
         if self.is_running:
             logger.warning("Already running a scan operation")
             return

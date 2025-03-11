@@ -16,7 +16,23 @@ logger = logging.getLogger(__name__)
 
 class PlaybackService(QObject):
     """
-    Audio playback class using GStreamer.
+    Audio playback service using GStreamer.
+
+    Signals:
+        currentTrackChanged(str): Emitted when the currently playing track changes.
+            The new track's path is passed as an argument.
+        playbackStateChanged(int): Emitted when the playback state changes.
+            The new state is passed as an integer (GStreamer state).
+        positionChanged(int): Emitted periodically during playback to update the
+            current playback position. The position is in milliseconds.
+        durationChanged(int): Emitted when the duration of the current track
+            is determined or changes. The duration is in milliseconds.
+
+    Properties:
+        position (int): The current playback position in milliseconds.
+        duration (int): The total duration of the current track in milliseconds.
+        currentTrackPath (str): The file path of the currently playing track.
+        playbackState (int): The current GStreamer playback state.
     """
 
     currentTrackChanged = Signal(str)
@@ -25,12 +41,30 @@ class PlaybackService(QObject):
     durationChanged = Signal(int)  # Duration in ms
 
     GST_STATE_VOID_PENDING = Gst.State.VOID_PENDING
+    """Represents an element that is in the process of changing state, but the
+    target state is not yet known."""
     GST_STATE_NULL = Gst.State.NULL
+    """The NULL state is the initial state of an element.  It is typically set
+    when an element is created or when it is reset."""
     GST_STATE_READY = Gst.State.READY
+    """The READY state is the state where an element is prepared to accept data,
+    but it is not yet processing data. Buffers are allocated, and the element
+    is ready to transition to the PAUSED state."""
     GST_STATE_PAUSED = Gst.State.PAUSED
+    """In the PAUSED state, an element is ready to accept and process data, but
+    it is not actively doing so. The element is typically waiting for a preroll
+    to complete or for the application to explicitly start playback."""
     GST_STATE_PLAYING = Gst.State.PLAYING
+    """The PLAYING state is the state where the element is actively processing
+    data and time is progressing."""
 
     def __init__(self, track_model: TrackTableModel):
+        """
+        Initializes the PlaybackService.
+
+        Args:
+            track_model: The model providing track data.
+        """
         super().__init__()
         self._track_model = track_model
 
@@ -86,6 +120,11 @@ class PlaybackService(QObject):
 
     @Slot(str)  # type: ignore
     def set_current_track_path(self, path: str):
+        """Sets the current track path and emits the currentTrackChanged signal.
+
+        Args:
+            path: The path to the new track.
+        """
         if self._current_track_path != path:
             self._current_track_path = path
             self.currentTrackChanged.emit(path)
@@ -162,12 +201,18 @@ class PlaybackService(QObject):
                 if self._position_timer and not self._position_timer.isActive():
                     self._position_timer.start()
             else:
-                if self._position_timer and self._position_timer.isActive():
+                if self._position_timer and not self._position_timer.isActive():
                     self._position_timer.stop()
 
     @Slot(str)  # type: ignore
     def play(self, path: str | None = None):
-        """Play or resume playback."""
+        """Play or resume playback.
+        If a path is provided, load and play the track.
+        If no path is provided, resume playback if paused.
+
+        Args:
+            path: The path to the audio file. Defaults to None.
+        """
         if path:
             try:
                 if (
@@ -208,7 +253,13 @@ class PlaybackService(QObject):
 
     @Slot(str)  # type: ignore
     def toggle_playback(self, path: str | None = None):
-        """Toggle between play and pause."""
+        """Toggle between play and pause.
+        If a path is provided, load and
+        play/pause the track based on current state.
+
+        Args:
+            path: The path to the audio file. Defaults to None.
+        """
         current_state = self._playback_state
 
         if path:
@@ -226,7 +277,11 @@ class PlaybackService(QObject):
 
     @Slot(int)  # type: ignore
     def seek(self, position_ms: int):
-        """Seek to position in milliseconds"""
+        """Seek to position in milliseconds
+
+        Args:
+            position_ms: The position to seek to in milliseconds.
+        """
         if self._playback_state in (Gst.State.PLAYING, Gst.State.PAUSED):
             # Convert to nanoseconds for GStreamer
             position_ns = position_ms * 1000000
@@ -287,8 +342,12 @@ class PlaybackService(QObject):
             self.seek(0)  # Restart track anyway
 
     @Slot(int)  # type: ignore
-    def handleRowClick(self, row):
-        """Handle when a row is clicked"""
+    def handleRowClick(self, row: int):
+        """Handle when a row is clicked
+
+        Args:
+            row: The row index that was clicked.
+        """
         if 0 <= row < self._track_model.rowCount():
             self._track_model.set_selected_track_index(row)
             logging.debug(f"Row {row} clicked")

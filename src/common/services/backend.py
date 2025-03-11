@@ -15,16 +15,40 @@ logger = logging.getLogger(__name__)
 
 
 class BackendServices(QObject):
-    # Forward signals from worker
+    """Manages tracks, playback, and communication with a worker thread.
+
+    Signals:
+        scanStarted: Emitted when the library scan starts.
+        scanProgress: Emitted during the scan to indicate progress (int: number of files added).
+        scanFinished: Emitted when the scan finishes (list: list of non-critical error paths).
+        scanError: Emitted if a critical error occurs during the scan (str: error message).
+        _startScan: Internal signal to trigger scan in worker thread (object: library path).
+
+    Attributes:
+        library_path: The path to the music library.
+        tracks_repository: Repository for track database operations.
+        tracks_services: Service for track-related logic.
+        track_model: Model for the GUI track table.
+        playback_service: Service for audio playback.
+        worker_thread: The worker thread for long-running operations.
+        worker: The worker object that runs in the worker thread.
+    """
+
     scanStarted = Signal()
     scanProgress = Signal(int)
     scanFinished = Signal(list)
     scanError = Signal(str)
-
-    # Signal to trigger scan in worker thread
     _startScan = Signal(object)
 
     def __init__(self, connection: Connection):
+        """Initializes the BackendServices.
+
+        Sets up the worker thread, connects signals, and initializes
+        repositories and services.
+
+        Args:
+            connection: The database connection.
+        """
         super().__init__()
         self.library_path: Path | None = None
         self.tracks_repository: TracksRepository = TracksRepository(connection)
@@ -55,6 +79,7 @@ class BackendServices(QObject):
             self.worker_thread.wait()
 
     def _initialize_services(self):
+        """Initialize services with the current library path."""
         if self.library_path:
             self.tracks_services = TracksServices(
                 self.track_model, self.library_path, self.tracks_repository
@@ -63,6 +88,14 @@ class BackendServices(QObject):
 
     @Slot(str)  # type: ignore
     def set_library_path(self, library_path: str):
+        """Sets the library path.
+
+        Args:
+            library_path: The path to the music library.
+
+        Raises:
+            ValueError: If the provided path is not a valid directory.
+        """
         path = Path(library_path)
         if not path.is_dir():
             raise ValueError(f"Invalid library path: {path}")
@@ -71,7 +104,11 @@ class BackendServices(QObject):
 
     @Slot()
     def scan_library(self):
-        """Start a library scan in the background thread."""
+        """Starts a library scan in the background thread.
+
+        Emits scanError if the library path is not set. Otherwise,
+        emits the _startScan signal to trigger the scan in the worker thread.
+        """
         if not self.library_path:
             self.scanError.emit(
                 "Library path not set. Please set a library path first."

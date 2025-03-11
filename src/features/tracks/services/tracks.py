@@ -21,12 +21,17 @@ logger = logging.getLogger(__name__)
 
 
 class TracksServices(QObject):
-    """
-    Class for track-related operations.
+    """Handles track-related operations, primarily scanning and database population.
 
     Attributes:
-        repository: The tracks repository to be used for operations.
-        get_time: time callable
+        _track_model: The track table model.
+        _library_path: The path to the music library.
+        _repository: The tracks repository.
+        _get_time: A function that returns the current time.
+        _paths: An iterator for traversing the library path.
+        _loaded_audio_file: The currently loaded audio file.
+        _current_file_path: The path to the current file.
+        _audio_file_count: The number of audio files found.
     """
 
     def __init__(
@@ -36,16 +41,35 @@ class TracksServices(QObject):
         repository: TracksRepository,
         get_time: Callable[[], float] = time.time,
     ) -> None:
+        """Initializes the TracksServices.
+
+        Args:
+            track_model: The track table model.
+            library_path: The path to the music library.
+            repository: The tracks repository.
+            get_time: A function that returns the current time.
+                Defaults to time.time.
+        """
+        super().__init__()
         self._track_model = track_model
-        self.library_path = library_path
-        self.repository = repository
+        self._library_path = library_path
+        self._repository = repository
         self._get_time = get_time
-        self._paths: Iterator[Path] = self.library_path.rglob("*")
+        self._paths: Iterator[Path] = self._library_path.rglob("*")
         self._loaded_audio_file: FileType | None = None
         self._current_file_path: Path | None = None
         self._audio_file_count: int = 0
 
     def populate_database(self) -> list[tuple[Path, Exception]]:
+        """Scans the library path and populates the database with track information.
+
+        Iterates through all files in the library path, extracts metadata
+        from audio files, and inserts track information into the database.
+
+        Returns:
+            A list of tuples. Each tuple contains the Path of a file
+            that failed to be processed and the corresponding Exception.
+        """
         logger.info("Populating metadata database")
         error_paths: list[tuple[Path, Exception]] = []
 
@@ -68,7 +92,7 @@ class TracksServices(QObject):
                         tags=tags,
                         app_data=app_data,
                     )
-                    self.repository.insert(track)
+                    self._repository.insert(track)
             else:
                 continue
 
