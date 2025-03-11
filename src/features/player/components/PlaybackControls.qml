@@ -4,7 +4,7 @@ import QtMultimedia
 
 Row {
     spacing: 10
-    property int playbackValue : 3
+    property int playbackValue : 1
 
     Component.onCompleted: {
       playButton.text = qsTr("Play");
@@ -15,7 +15,7 @@ Row {
       function onPlaybackStateChanged(state) {
         if (playbackValue !== state) {
           playbackValue = state;
-          if (playbackValue !== 1) {
+          if (playbackValue !== 4) {
             playButton.text = qsTr("Play");
           } else {
             playButton.text = qsTr("Pause");

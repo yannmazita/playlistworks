@@ -9,29 +9,33 @@ Work in progress! Very early stage and actively developed.
 
 ## Getting Started
 
-1.  Clone the repository:
+### Prerequisites
 
+1.  **Python 3.13**
+2.  **Poetry:** Install [Poetry](https://python-poetry.org/docs/#installation).
+3.  **GStreamer:**
+    *   **Arch Linux**
+        ```bash
+        sudo pacman -S gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav python-gobject
+        ```
+    *   **Fedora**
+        ```bash
+        sudo dnf install gstreamer1-devel gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly python3-gobject
+        ```
+
+### Setup
+
+1.  Clone repository and run the setup script:
+    
     ```bash
     git clone https://github.com/yannmazita/playlistworks.git
+    cd playlistworks
+    ./scripts/setup.sh
     ```
-
-2.  Activate virtual environment, install dependencies:
-
+2.  Activate poetry environment
     ```bash
     eval $(poetry env activate)
-    poetry install
     ```
-
-3.  Start the application
-
-    ```bash
-    python -m src.main
-    ```
-
-## Dependencies
-
-- PySide6 (QT6 Python bindings)
-- mutagen (Audio metadata)
 
 ## Roadmap (MVP)
 - Metadata extraction and database: ✅

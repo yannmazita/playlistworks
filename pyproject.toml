@@ -12,6 +12,7 @@ pyside6 = "^6.8.2.1"
 mutagen = "^1.47.0"
 pydantic = "^2.10.6"
 pydantic-settings = "^2.8.0"
+pygobject = "^3.52.1"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
