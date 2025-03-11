@@ -25,8 +25,7 @@ class TrackTableModel(QAbstractTableModel):
         self._selected_track_index = -1
         self.load_data()
 
-    @Property(int, notify=selectedTrackIndexChanged)  # type: ignore
-    def selectedTrackIndex(self):
+    def get_selected_track_index(self):
         return self._selected_track_index
 
     @Slot(int)  # type: ignore
@@ -34,7 +33,13 @@ class TrackTableModel(QAbstractTableModel):
         if self._selected_track_index != index:
             self._selected_track_index = index
             self.selectedTrackIndexChanged.emit(self._selected_track_index)
-            logger.debug(f"Selected track index set to: {index}")
+
+    selectedTrackIndex = Property(
+        int,
+        fget=get_selected_track_index,
+        fset=set_selected_track_index,
+        notify=selectedTrackIndexChanged,
+    )
 
     def load_data(self):
         self.beginResetModel()

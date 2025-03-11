@@ -5,7 +5,7 @@ import gi
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib  # type: ignore
-from PySide6.QtCore import QObject, Signal, Slot, Property
+from PySide6.QtCore import Qt, QObject, Signal, Slot, Property
 
 from src.features.tracks.models import TrackTableModel
 
@@ -21,6 +21,8 @@ class PlaybackService(QObject):
 
     currentTrackChanged = Signal(str)
     playbackStateChanged = Signal(int)
+    positionChanged = Signal(int)  # Position in ms
+    durationChanged = Signal(int)  # Duration in ms
 
     GST_STATE_VOID_PENDING = Gst.State.VOID_PENDING
     GST_STATE_NULL = Gst.State.NULL
@@ -49,6 +51,13 @@ class PlaybackService(QObject):
         self._main_loop = GLib.MainLoop()
         self._main_loop_thread = GLib.Thread.new("gst-thread", self._run_main_loop)
 
+        self._position = 0
+        self._duration = 0
+
+        # Set up a timer to poll position during playback
+        self._position_timer = None
+        self._setup_position_timer()
+
     def _run_main_loop(self):
         """Run the GLib main loop for GStreamer message processing"""
         self._main_loop.run()
@@ -59,6 +68,16 @@ class PlaybackService(QObject):
             self._main_loop.quit()
         if hasattr(self, "player"):
             self.player.set_state(Gst.State.NULL)
+
+    @Property(int, notify=positionChanged)  # type: ignore
+    def position(self):
+        """Get current playback position in milliseconds"""
+        return self._position
+
+    @Property(int, notify=durationChanged)  # type: ignore
+    def duration(self):
+        """Get track duration in milliseconds"""
+        return self._duration
 
     @Property(str, notify=currentTrackChanged)  # type: ignore
     def currentTrackPath(self):
@@ -75,6 +94,33 @@ class PlaybackService(QObject):
     def playbackState(self):
         """Get the playback state"""
         return self._playback_state
+
+    def _setup_position_timer(self):
+        """Set up timer to update position during playback"""
+        from PySide6.QtCore import QTimer
+
+        self._position_timer = QTimer(self)
+        self._position_timer.setInterval(500)  # Update every 500ms
+        self._position_timer.timeout.connect(self._update_position)
+
+    def _update_position(self):
+        """Update current playback position and emit signal"""
+        if self._playback_state != Gst.State.PLAYING:
+            return
+
+        success, position = self.player.query_position(Gst.Format.TIME)
+        if success:
+            pos_ms = position // 1000000  # ns to ms
+            if pos_ms != self._position:
+                self._position = pos_ms
+                self.positionChanged.emit(pos_ms)
+
+        success, duration = self.player.query_duration(Gst.Format.TIME)
+        if success:
+            dur_ms = duration // 1000000  # ns to ms
+            if dur_ms != self._duration:
+                self._duration = dur_ms
+                self.durationChanged.emit(dur_ms)
 
     def _on_bus_message(self, bus, message):
         """Handle GStreamer bus messages"""
@@ -96,12 +142,28 @@ class PlaybackService(QObject):
             if message.src == self.player:
                 old_state, new_state, pending_state = message.parse_state_changed()
                 self._update_playback_state(new_state)
+        elif t == Gst.MessageType.STREAM_START:
+            logger.info("Stream started")
+            # Query and update duration when stream starts
+            success, duration = self.player.query_duration(Gst.Format.TIME)
+            if success:
+                dur_ms = duration // 1000000
+                self._duration = dur_ms
+                self.durationChanged.emit(dur_ms)
 
     def _update_playback_state(self, state):
         """Update the playback state and emit signal if changed"""
         if self._playback_state != state:
             self._playback_state = state
             self.playbackStateChanged.emit(state)
+
+            # Start or stop the position timer based on playback state
+            if state == Gst.State.PLAYING:
+                if self._position_timer and not self._position_timer.isActive():
+                    self._position_timer.start()
+            else:
+                if self._position_timer and self._position_timer.isActive():
+                    self._position_timer.stop()
 
     @Slot(str)  # type: ignore
     def play(self, path: str | None = None):
@@ -161,6 +223,68 @@ class PlaybackService(QObject):
                 self.pause()
             elif self._current_track_path:
                 self.play()
+
+    @Slot(int)  # type: ignore
+    def seek(self, position_ms: int):
+        """Seek to position in milliseconds"""
+        if self._playback_state in (Gst.State.PLAYING, Gst.State.PAUSED):
+            # Convert to nanoseconds for GStreamer
+            position_ns = position_ms * 1000000
+            logger.info(f"Seeking to position: {position_ms}ms")
+            self.player.seek_simple(
+                Gst.Format.TIME,
+                Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+                position_ns,
+            )
+
+    @Slot()  # type: ignore
+    def skip_forward(self):
+        """Skip to next track"""
+        current_index = self._track_model.get_selected_track_index()
+        if current_index == -1:
+            # No track selected, select first track
+            if self._track_model.rowCount() > 0:
+                self._track_model.set_selected_track_index(0)
+                track_path = self._track_model.data(
+                    self._track_model.index(0, 0),
+                    Qt.UserRole + 4,  # type: ignore
+                )
+                self.play(track_path)
+        else:
+            # Go to next track if available
+            next_index = current_index + 1
+            if next_index < self._track_model.rowCount():
+                self._track_model.set_selected_track_index(next_index)
+                track_path = self._track_model.data(
+                    self._track_model.index(next_index, 0),
+                    Qt.UserRole + 4,  # type: ignore
+                )
+                self.play(track_path)
+            else:
+                logger.info("Already at last track")
+
+    @Slot()  # type: ignore
+    def skip_backward(self):
+        """Skip to previous track or restart current track"""
+        current_index = self._track_model.get_selected_track_index()
+
+        # If we're more than 3 seconds into the track, restart it
+        if self._position > 3000:
+            self.seek(0)
+            return
+
+        # Otherwise go to previous track
+        if current_index > 0:
+            prev_index = current_index - 1
+            self._track_model.set_selected_track_index(prev_index)
+            track_path = self._track_model.data(
+                self._track_model.index(prev_index, 0),
+                Qt.UserRole + 4,  # type: ignore
+            )
+            self.play(track_path)
+        else:
+            logger.info("Already at first track")
+            self.seek(0)  # Restart track anyway
 
     @Slot(int)  # type: ignore
     def handleRowClick(self, row):
