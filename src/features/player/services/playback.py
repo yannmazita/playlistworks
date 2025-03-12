@@ -92,30 +92,7 @@ class PlaybackService(QObject):
         self._position_timer = None
         self._setup_position_timer()
 
-    def _run_main_loop(self):
-        """Run the GLib main loop for GStreamer message processing"""
-        self._main_loop.run()
-
-    def __del__(self):
-        """Clean up resources"""
-        if hasattr(self, "_main_loop") and self._main_loop.is_running():
-            self._main_loop.quit()
-        if hasattr(self, "player"):
-            self.player.set_state(Gst.State.NULL)
-
-    @Property(int, notify=positionChanged)  # type: ignore
-    def position(self):
-        """Get current playback position in milliseconds"""
-        return self._position
-
-    @Property(int, notify=durationChanged)  # type: ignore
-    def duration(self):
-        """Get track duration in milliseconds"""
-        return self._duration
-
-    @Property(str, notify=currentTrackChanged)  # type: ignore
-    def currentTrackPath(self):
-        """Get the current track path"""
+    def get_current_track_path(self):
         return self._current_track_path
 
     @Slot(str)  # type: ignore
@@ -129,10 +106,38 @@ class PlaybackService(QObject):
             self._current_track_path = path
             self.currentTrackChanged.emit(path)
 
-    @Property(int, notify=playbackStateChanged)  # type: ignore
-    def playbackState(self):
-        """Get the playback state"""
+    currentTrackPath = Property(
+        str,
+        fget=get_current_track_path,  # type: ignore
+        fset=set_current_track_path,
+        notify=currentTrackChanged,
+    )
+
+    def get_position(self):
+        return self._position
+
+    position = Property(int, fget=get_position, notify=positionChanged)  # type: ignore
+
+    def get_playback_state(self):
         return self._playback_state
+
+    playbackState = Property(int, fget=get_playback_state, notify=playbackStateChanged)  # type: ignore
+
+    def get_duration(self):
+        return self._duration
+
+    duration = Property(int, fget=get_duration, notify=durationChanged)  # type: ignore
+
+    def _run_main_loop(self):
+        """Run the GLib main loop for GStreamer message processing"""
+        self._main_loop.run()
+
+    def __del__(self):
+        """Clean up resources"""
+        if hasattr(self, "_main_loop") and self._main_loop.is_running():
+            self._main_loop.quit()
+        if hasattr(self, "player"):
+            self.player.set_state(Gst.State.NULL)
 
     def _setup_position_timer(self):
         """Set up timer to update position during playback"""

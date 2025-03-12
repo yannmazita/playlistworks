@@ -36,7 +36,7 @@ class TrackTableModel(QAbstractTableModel):
 
     selectedTrackIndex = Property(
         int,
-        fget=get_selected_track_index,
+        fget=get_selected_track_index,  # type: ignore
         fset=set_selected_track_index,
         notify=selectedTrackIndexChanged,
     )
