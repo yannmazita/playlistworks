@@ -41,7 +41,7 @@ Work in progress! Very early stage and actively developed.
 - Metadata extraction and database: ✅
 - Audio file player: ✅
 - GUI: 🕙
-- Regex dynamic playlists: ❌
+- Regex dynamic playlists: 🕙
 
 ## Goals
 - Robust and fast dynamic playlist creation using audio file metadata

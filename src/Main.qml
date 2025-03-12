@@ -12,6 +12,16 @@ ApplicationWindow {
     height: 600
     title: "playlistworks"
 
+    LibraryDirectoryDialog {
+        id: libraryDirectoryDialog
+    }
+    LibraryScanningDialog {
+        id: libraryScanningDialog
+    }
+    ErrorDialog {
+        id: errorDialog
+    }
+
     menuBar: MenuBar {
         Menu {
             title: qsTr("File")
@@ -22,7 +32,7 @@ ApplicationWindow {
             Action {
                 text: qsTr("Scan Library")
                 onTriggered: {
-                    scanProgressDialog.open();
+                    libraryScanningDialog.open();
                     backend.scan_library();
                 }
             }
@@ -41,56 +51,18 @@ ApplicationWindow {
         id: mainColumn
         anchors.fill: parent
 
-        TrackTable {}
-    }
-
-    footer: ToolBar {}
-
-    LibraryDirectoryDialog {
-        id: libraryDirectoryDialog
-    }
-
-    Dialog {
-        id: scanProgressDialog
-        title: "Scanning Library"
-        modal: true
-        closePolicy: Dialog.NoAutoClose
-
-        Label {
-            text: "Scanning library files, please wait..."
+        SearchBar {
+            Layout.fillWidth: true
         }
 
-        BusyIndicator {
-            running: true
-        }
-
-        Component.onCompleted: {
-            backend.scanStarted.connect(() => {
-                scanProgressDialog.open();
-            });
-
-            backend.scanFinished.connect(() => {
-                scanProgressDialog.close();
-            });
-
-            backend.scanError.connect(errorMessage => {
-                scanProgressDialog.close();
-                errorDialog.text = errorMessage;
-                errorDialog.open();
-            });
+        TrackTable {
+            id: trackTable
         }
     }
 
-    Dialog {
-        id: errorDialog
-        title: "Error"
-        modal: true
-        property string text: ""
-
-        Label {
-            text: errorDialog.text
+    footer: ToolBar {
+        StatusBar {
+            id: statusBar
         }
-
-        standardButtons: Dialog.Ok
     }
 }
