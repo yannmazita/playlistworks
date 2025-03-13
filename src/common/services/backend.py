@@ -6,16 +6,16 @@ from sqlite3 import Connection
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from src.features.player.services.playback import PlaybackService
-from src.features.tracks.models import TrackTableModel
-from src.features.tracks.repository import TracksRepository
-from src.features.tracks.services.tracks import TracksServices
+from src.features.library.models import SongModel
+from src.features.library.repository import SongsRepository
+from src.features.library.services.library import LibraryServices
 from src.common.services.backend_worker import BackendWorker
 
 logger = logging.getLogger(__name__)
 
 
 class BackendServices(QObject):
-    """Manages tracks, playback, and communication with a worker thread.
+    """Manages songs, playback, and communication with a worker thread.
 
     Signals:
         scanStarted: Emitted when the library scan starts.
@@ -26,9 +26,9 @@ class BackendServices(QObject):
 
     Attributes:
         library_path: The path to the music library.
-        tracks_repository: Repository for track database operations.
-        tracks_services: Service for track-related logic.
-        track_model: Model for the GUI track table.
+        songs_repository: Repository for song database operations.
+        library_services: Service for song-related logic.
+        song_model: Model for the GUI song table.
         playback_service: Service for audio playback.
         worker_thread: The worker thread for long-running operations.
         worker: The worker object that runs in the worker thread.
@@ -51,10 +51,10 @@ class BackendServices(QObject):
         """
         super().__init__()
         self.library_path: Path | None = None
-        self.tracks_repository: TracksRepository = TracksRepository(connection)
-        self.tracks_services: TracksServices | None = None
-        self.track_model: TrackTableModel = TrackTableModel(self.tracks_repository)
-        self.playback_service: PlaybackService = PlaybackService(self.track_model)
+        self.songs_repository: SongsRepository = SongsRepository(connection)
+        self.library_services: LibraryServices | None = None
+        self.song_model: SongModel = SongModel(self.songs_repository)
+        self.playback_service: PlaybackService = PlaybackService(self.song_model)
 
         # Setup worker thread
         self.worker_thread = QThread()
@@ -81,8 +81,8 @@ class BackendServices(QObject):
     def _initialize_services(self):
         """Initialize services with the current library path."""
         if self.library_path:
-            self.tracks_services = TracksServices(
-                self.track_model, self.library_path, self.tracks_repository
+            self.library_services = LibraryServices(
+                self.song_model, self.library_path, self.songs_repository
             )
         # self.playback_service = PlaybackService()
 

@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "common/components"
 import "features/player/components"
-import "features/tracks/components"
+import "features/library/components"
 
 ApplicationWindow {
     id: mainWindow
@@ -55,8 +55,8 @@ ApplicationWindow {
             Layout.fillWidth: true
         }
 
-        TrackTable {
-            id: trackTable
+        SongTable {
+            id: songTable
         }
     }
 

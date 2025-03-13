@@ -38,7 +38,7 @@ def initialize_database(conn: sqlite3.Connection):
         cursor = conn.cursor()
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS tracks (
+            CREATE TABLE IF NOT EXISTS songs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 path TEXT UNIQUE NOT NULL,
                 fileprops TEXT NOT NULL,
@@ -60,33 +60,33 @@ def initialize_database(conn: sqlite3.Connection):
         """
         )
 
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_path ON tracks (path)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_path ON songs (path)")
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_artist ON tracks (json_extract(tags, '$.ARTIST'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_artist ON songs (json_extract(tags, '$.ARTIST'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_artistsort ON tracks (json_extract(tags, '$.ARTIST_SORT'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_artistsort ON songs (json_extract(tags, '$.ARTIST_SORT'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_album ON tracks (json_extract(tags, '$.ALBUM'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_album ON songs (json_extract(tags, '$.ALBUM'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_albumartistsort ON tracks (json_extract(tags, '$.ALBUM_ARTIST_SORT'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_albumartistsort ON songs (json_extract(tags, '$.ALBUM_ARTIST_SORT'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_title ON tracks (json_extract(tags, '$.TITLE'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_title ON songs (json_extract(tags, '$.TITLE'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_tags_genre ON tracks (json_extract(tags, '$.GENRE'))"
+            "CREATE INDEX IF NOT EXISTS idx_tags_genre ON songs (json_extract(tags, '$.GENRE'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_app_data_play_count ON tracks (json_extract(app_data, '$.play_count'))"
+            "CREATE INDEX IF NOT EXISTS idx_app_data_play_count ON songs (json_extract(app_data, '$.play_count'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_app_data_last_played ON tracks (json_extract(app_data, '$.last_played'))"
+            "CREATE INDEX IF NOT EXISTS idx_app_data_last_played ON songs (json_extract(app_data, '$.last_played'))"
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_app_data_rating ON tracks (json_extract(app_data, '$.rating'))"
+            "CREATE INDEX IF NOT EXISTS idx_app_data_rating ON songs (json_extract(app_data, '$.rating'))"
         )
 
         conn.commit()

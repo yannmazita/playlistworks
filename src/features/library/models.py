@@ -1,4 +1,4 @@
-# src.features.tracks.models
+# src.features.library.models
 import logging
 from PySide6.QtCore import (
     QAbstractTableModel,
@@ -10,47 +10,47 @@ from PySide6.QtCore import (
     Slot,
 )
 
-from src.features.tracks.repository import Track, TracksRepository
+from src.features.library.repository import Song, SongsRepository
 
 logger = logging.getLogger(__name__)
 
 
-class TrackTableModel(QAbstractTableModel):
-    selectedTrackIndexChanged = Signal(int)
+class SongModel(QAbstractTableModel):
+    selectedSongIndexChanged = Signal(int)
 
-    def __init__(self, repository: TracksRepository):
+    def __init__(self, repository: SongsRepository):
         QAbstractTableModel.__init__(self)
         self.repository = repository
-        self.tracks: list[Track] = []
-        self._selected_track_index = -1
+        self.songs: list[Song] = []
+        self._selected_song_index = -1
         self.load_data()
 
-    def get_selected_track_index(self):
-        return self._selected_track_index
+    def get_selected_song_index(self):
+        return self._selected_song_index
 
     @Slot(int)  # type: ignore
-    def set_selected_track_index(self, index: int):
-        if self._selected_track_index != index:
-            self._selected_track_index = index
-            self.selectedTrackIndexChanged.emit(self._selected_track_index)
+    def set_selected_song_index(self, index: int):
+        if self._selected_song_index != index:
+            self._selected_song_index = index
+            self.selectedSongIndexChanged.emit(self._selected_song_index)
 
-    selectedTrackIndex = Property(
+    selectedSongIndex = Property(
         int,
-        fget=get_selected_track_index,  # type: ignore
-        fset=set_selected_track_index,
-        notify=selectedTrackIndexChanged,
+        fget=get_selected_song_index,  # type: ignore
+        fset=set_selected_song_index,
+        notify=selectedSongIndexChanged,
     )
 
     def load_data(self):
         self.beginResetModel()
-        self.tracks = self.repository.find_many()
+        self.songs = self.repository.find_many()
         self.endResetModel()
-        logger.debug(f"Loaded {len(self.tracks)} tracks")
+        logger.debug(f"Loaded {len(self.songs)} songs")
 
     def rowCount(
         self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
     ) -> int:
-        return len(self.tracks)
+        return len(self.songs)
 
     def columnCount(
         self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
@@ -65,29 +65,29 @@ class TrackTableModel(QAbstractTableModel):
         if not index.isValid():
             logger.warning("Invalid index in data method")
             return None
-        track = self.tracks[index.row()]
+        song = self.songs[index.row()]
 
         if role == Qt.DisplayRole:  # type: ignore
             if index.column() == 0:
-                value = track.get_tag_display("TITLE")
+                value = song.get_tag_display("TITLE")
                 return value
             elif index.column() == 1:
-                value = track.get_tag_display("ARTIST")
+                value = song.get_tag_display("ARTIST")
                 return value
             elif index.column() == 2:
-                value = track.get_tag_display("ALBUM")
+                value = song.get_tag_display("ALBUM")
                 return value
         elif role == Qt.UserRole + 1:  # type: ignore
-            value = track.get_tag_display("TITLE")
+            value = song.get_tag_display("TITLE")
             return value
         elif role == Qt.UserRole + 2:  # type: ignore
-            value = track.get_tag_display("ARTIST")
+            value = song.get_tag_display("ARTIST")
             return value
         elif role == Qt.UserRole + 3:  # type: ignore
-            value = track.get_tag_display("ALBUM")
+            value = song.get_tag_display("ALBUM")
             return value
         elif role == Qt.UserRole + 4:  # type: ignore
-            return track.path
+            return song.path
         else:
             return None
 
@@ -115,5 +115,5 @@ class TrackTableModel(QAbstractTableModel):
 
     def refresh(self):
         """Reload data from the repository"""
-        logger.debug("Refreshing track table model")
+        logger.debug("Refreshing song model")
         self.load_data()

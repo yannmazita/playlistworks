@@ -52,7 +52,7 @@ class GuiServices:
         )
         self.engine.rootContext().setContextProperty("backend", self.backend)
         self.engine.rootContext().setContextProperty(
-            "trackTableModel", self.backend.track_model
+            "songModel", self.backend.song_model
         )
         if self.backend.playback_service:
             self.engine.rootContext().setContextProperty(
@@ -62,25 +62,25 @@ class GuiServices:
     def _on_scan_finished(self, error_paths: list[tuple[Path, Exception]]):
         """Handles the scanFinished signal from the backend.
 
-        Refreshes the track table model and logs any errors.
+        Refreshes the song table model and logs any errors.
 
         Args:
             error_paths: A list of tuples, where each tuple contains
                 the path of a file that failed to scan and
                 the corresponding exception.
         """
-        logger.info("Library scan finished, refreshing track table model")
-        self.backend.track_model.refresh()
+        logger.info("Library scan finished, refreshing song table model")
+        self.backend.song_model.refresh()
         for path, error in error_paths:
             logger.error(f"Failed to scan: {path} - {error}")
 
     def _on_scan_error(self):
         """Handles the scanError signal from the backend.
 
-        Refreshes the track table model.
+        Refreshes the song table model.
         """
-        logger.info("Library scan suspended, refreshing track table model")
-        self.backend.track_model.refresh()
+        logger.info("Library scan suspended, refreshing song table model")
+        self.backend.song_model.refresh()
 
     def run(self):
         """Loads the QML file, starts the event loop, and handles exit."""

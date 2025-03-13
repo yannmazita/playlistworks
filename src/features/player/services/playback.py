@@ -7,7 +7,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib  # type: ignore
 from PySide6.QtCore import Qt, QObject, Signal, Slot, Property
 
-from src.features.tracks.models import TrackTableModel
+from src.features.library.models import SongModel
 
 Gst.init(None)
 
@@ -19,19 +19,19 @@ class PlaybackService(QObject):
     Audio playback service using GStreamer.
 
     Signals:
-        currentTrackChanged(str): Emitted when the currently playing track changes.
-            The new track's path is passed as an argument.
+        currentTrackChanged(str): Emitted when the currently playing song changes.
+            The new song's path is passed as an argument.
         playbackStateChanged(int): Emitted when the playback state changes.
             The new state is passed as an integer (GStreamer state).
         positionChanged(int): Emitted periodically during playback to update the
             current playback position. The position is in milliseconds.
-        durationChanged(int): Emitted when the duration of the current track
+        durationChanged(int): Emitted when the duration of the current song
             is determined or changes. The duration is in milliseconds.
 
     Properties:
         position (int): The current playback position in milliseconds.
-        duration (int): The total duration of the current track in milliseconds.
-        currentTrackPath (str): The file path of the currently playing track.
+        duration (int): The total duration of the current song in milliseconds.
+        currentTrackPath (str): The file path of the currently playing song.
         playbackState (int): The current GStreamer playback state.
     """
 
@@ -58,15 +58,15 @@ class PlaybackService(QObject):
     """The PLAYING state is the state where the element is actively processing
     data and time is progressing."""
 
-    def __init__(self, track_model: TrackTableModel):
+    def __init__(self, song_model: SongModel):
         """
         Initializes the PlaybackService.
 
         Args:
-            track_model: The model providing track data.
+            song_model: The model providing song data.
         """
         super().__init__()
-        self._track_model = track_model
+        self._song_model = song_model
 
         self.player = Gst.ElementFactory.make("playbin", "player")
         if not self.player:
@@ -78,7 +78,7 @@ class PlaybackService(QObject):
         bus.add_signal_watch()
         bus.connect("message", self._on_bus_message)
 
-        self._current_track_path = ""
+        self._current_song_path = ""
         self._playback_state = Gst.State.NULL
 
         # Create a mainloop for message processing
@@ -92,24 +92,24 @@ class PlaybackService(QObject):
         self._position_timer = None
         self._setup_position_timer()
 
-    def get_current_track_path(self):
-        return self._current_track_path
+    def get_current_song_path(self):
+        return self._current_song_path
 
     @Slot(str)  # type: ignore
-    def set_current_track_path(self, path: str):
-        """Sets the current track path and emits the currentTrackChanged signal.
+    def set_current_song_path(self, path: str):
+        """Sets the current song path and emits the currentTrackChanged signal.
 
         Args:
-            path: The path to the new track.
+            path: The path to the new song.
         """
-        if self._current_track_path != path:
-            self._current_track_path = path
+        if self._current_song_path != path:
+            self._current_song_path = path
             self.currentTrackChanged.emit(path)
 
     currentTrackPath = Property(
         str,
-        fget=get_current_track_path,  # type: ignore
-        fset=set_current_track_path,
+        fget=get_current_song_path,  # type: ignore
+        fset=set_current_song_path,
         notify=currentTrackChanged,
     )
 
@@ -212,7 +212,7 @@ class PlaybackService(QObject):
     @Slot(str)  # type: ignore
     def play(self, path: str | None = None):
         """Play or resume playback.
-        If a path is provided, load and play the track.
+        If a path is provided, load and play the song.
         If no path is provided, resume playback if paused.
 
         Args:
@@ -221,10 +221,10 @@ class PlaybackService(QObject):
         if path:
             try:
                 if (
-                    path != self._current_track_path
+                    path != self._current_song_path
                     or self._playback_state == Gst.State.NULL
                 ):
-                    self.set_current_track_path(path)
+                    self.set_current_song_path(path)
                     # Stop current playback before loading new file
                     self.player.set_state(Gst.State.NULL)
                     # Set the URI
@@ -233,15 +233,15 @@ class PlaybackService(QObject):
                     else:
                         uri = Gst.filename_to_uri(path)
                     self.player.set_property("uri", uri)
-                    logger.info(f"Playing track: {path}")
+                    logger.info(f"Playing song: {path}")
                 self.player.set_state(Gst.State.PLAYING)
             except Exception:
-                logger.exception("Error playing track", stack_info=True)
+                logger.exception("Error playing song", stack_info=True)
         elif self._playback_state == Gst.State.PAUSED:
             self.player.set_state(Gst.State.PLAYING)
             logger.info("Resuming playback")
         else:
-            logger.info("No track to play")
+            logger.info("No song to play")
 
     @Slot()
     def pause(self):
@@ -260,7 +260,7 @@ class PlaybackService(QObject):
     def toggle_playback(self, path: str | None = None):
         """Toggle between play and pause.
         If a path is provided, load and
-        play/pause the track based on current state.
+        play/pause the song based on current state.
 
         Args:
             path: The path to the audio file. Defaults to None.
@@ -268,7 +268,7 @@ class PlaybackService(QObject):
         current_state = self._playback_state
 
         if path:
-            if path != self._current_track_path or current_state == Gst.State.NULL:
+            if path != self._current_song_path or current_state == Gst.State.NULL:
                 self.play(path)
             elif current_state == Gst.State.PLAYING:
                 self.pause()
@@ -277,7 +277,7 @@ class PlaybackService(QObject):
         else:
             if current_state == Gst.State.PLAYING:
                 self.pause()
-            elif self._current_track_path:
+            elif self._current_song_path:
                 self.play()
 
     @Slot(int)  # type: ignore
@@ -299,52 +299,52 @@ class PlaybackService(QObject):
 
     @Slot()  # type: ignore
     def skip_forward(self):
-        """Skip to next track"""
-        current_index = self._track_model.get_selected_track_index()
+        """Skip to next song"""
+        current_index = self._song_model.get_selected_song_index()
         if current_index == -1:
-            # No track selected, select first track
-            if self._track_model.rowCount() > 0:
-                self._track_model.set_selected_track_index(0)
-                track_path = self._track_model.data(
-                    self._track_model.index(0, 0),
+            # No song selected, select first song
+            if self._song_model.rowCount() > 0:
+                self._song_model.set_selected_song_index(0)
+                song_path = self._song_model.data(
+                    self._song_model.index(0, 0),
                     Qt.UserRole + 4,  # type: ignore
                 )
-                self.play(track_path)
+                self.play(song_path)
         else:
-            # Go to next track if available
+            # Go to next song if available
             next_index = current_index + 1
-            if next_index < self._track_model.rowCount():
-                self._track_model.set_selected_track_index(next_index)
-                track_path = self._track_model.data(
-                    self._track_model.index(next_index, 0),
+            if next_index < self._song_model.rowCount():
+                self._song_model.set_selected_song_index(next_index)
+                song_path = self._song_model.data(
+                    self._song_model.index(next_index, 0),
                     Qt.UserRole + 4,  # type: ignore
                 )
-                self.play(track_path)
+                self.play(song_path)
             else:
-                logger.info("Already at last track")
+                logger.info("Already at last song")
 
     @Slot()  # type: ignore
     def skip_backward(self):
-        """Skip to previous track or restart current track"""
-        current_index = self._track_model.get_selected_track_index()
+        """Skip to previous song or restart current song"""
+        current_index = self._song_model.get_selected_song_index()
 
-        # If we're more than 3 seconds into the track, restart it
+        # If we're more than 3 seconds into the song, restart it
         if self._position > 3000:
             self.seek(0)
             return
 
-        # Otherwise go to previous track
+        # Otherwise go to previous song
         if current_index > 0:
             prev_index = current_index - 1
-            self._track_model.set_selected_track_index(prev_index)
-            track_path = self._track_model.data(
-                self._track_model.index(prev_index, 0),
+            self._song_model.set_selected_song_index(prev_index)
+            song_path = self._song_model.data(
+                self._song_model.index(prev_index, 0),
                 Qt.UserRole + 4,  # type: ignore
             )
-            self.play(track_path)
+            self.play(song_path)
         else:
-            logger.info("Already at first track")
-            self.seek(0)  # Restart track anyway
+            logger.info("Already at first song")
+            self.seek(0)  # Restart song anyway
 
     @Slot(int)  # type: ignore
     def handleRowClick(self, row: int):
@@ -353,6 +353,6 @@ class PlaybackService(QObject):
         Args:
             row: The row index that was clicked.
         """
-        if 0 <= row < self._track_model.rowCount():
-            self._track_model.set_selected_track_index(row)
+        if 0 <= row < self._song_model.rowCount():
+            self._song_model.set_selected_song_index(row)
             logging.debug(f"Row {row} clicked")

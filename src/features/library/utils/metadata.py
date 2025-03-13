@@ -1,4 +1,4 @@
-# src.features.tracks.utils.metadata
+# src.features.songs.utils.metadata
 from pathlib import Path
 from typing import Any
 from mutagen._file import FileType
@@ -6,7 +6,7 @@ from mutagen.id3 import ID3
 from mutagen.mp4 import MP4Tags
 
 from src.core.types import AppleKeys, ID3Keys
-from src.features.tracks.schemas import FileProperties
+from src.features.library.schemas import FileProperties
 
 
 def get_audio_properties(audio_file: FileType, audio_file_path: Path) -> FileProperties:

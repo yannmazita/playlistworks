@@ -4,9 +4,9 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot
 
 from src.common.database import get_db_connection
-from src.features.tracks.models import TrackTableModel
-from src.features.tracks.repository import TracksRepository
-from src.features.tracks.services.tracks import TracksServices
+from src.features.library.models import SongModel
+from src.features.library.repository import SongsRepository
+from src.features.library.services.library import LibraryServices
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +21,9 @@ class BackendWorker(QObject):
         scanError: Emitted if an error occurs during the scan.
 
     Attributes:
-        track_model: Model for the GUI track table.
-        tracks_repository: Repository for track database operations.
-        tracks_services: Service for track-related logic.
+        song_model: Model for the GUI song table.
+        songs_repository: Repository for song database operations.
+        library_services: Service for library-related logic.
         is_running: A boolean, True if scan is running
     """
 
@@ -35,9 +35,9 @@ class BackendWorker(QObject):
     def __init__(self):
         """Initializes the BackendWorker."""
         super().__init__()
-        self.track_model = None
-        self.tracks_repository = None
-        self.tracks_services = None
+        self.song_model = None
+        self.songs_repository = None
+        self.library_services = None
         self.is_running = False
 
     def initialize_services(self, library_path: Path) -> bool:
@@ -57,10 +57,10 @@ class BackendWorker(QObject):
         try:
             # Using thread-specific connection (and repository) because sqlite is not thread-safe
             connection = get_db_connection()
-            self.tracks_repository = TracksRepository(connection)
-            self.track_model = TrackTableModel(self.tracks_repository)
-            self.tracks_services = TracksServices(
-                self.track_model, library_path, self.tracks_repository
+            self.songs_repository = SongsRepository(connection)
+            self.song_model = SongModel(self.songs_repository)
+            self.library_services = LibraryServices(
+                self.song_model, library_path, self.songs_repository
             )
             return True
         except Exception as e:
@@ -70,7 +70,7 @@ class BackendWorker(QObject):
 
     @Slot(Path)  # type: ignore
     def scan_library(self, library_path: Path):
-        """Scans the library and populates the database with track information.
+        """Scans the library and populates the database with song information.
 
         Emits `scanStarted` when the scan begins.
         Emits 'scanProgress' with number of audio files added.
@@ -93,13 +93,13 @@ class BackendWorker(QObject):
                 self.is_running = False
                 return
 
-            if not self.tracks_services:
-                self.scanError.emit("Tracks services not initialized")
+            if not self.library_services:
+                self.scanError.emit("Songs services not initialized")
                 self.is_running = False
                 return
 
             # Execute the scan
-            error_paths = self.tracks_services.populate_database()
+            error_paths = self.library_services.populate_database()
             self.scanFinished.emit(error_paths)
             return
 

@@ -1,4 +1,4 @@
-# src.features.tracks.schemas
+# src.features.library.schemas
 from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from pathlib import Path
@@ -11,7 +11,7 @@ class FileProperties(BaseModel):
     bitrate: int = Field(description="Bitrate in kbps")
     sample_rate: int = Field(description="Sample rate in Hz")
     channels: int = Field(description="Number of audio channels")
-    length: float = Field(description="Track length in seconds")
+    length: float = Field(description="Song length in seconds")
     mtime: float = Field(description="Last modification time of the file (UNIX time)")
 
 
@@ -27,7 +27,7 @@ class AppData(BaseModel):
     added_date: float = Field(description="Date added (UNIX time)")
 
 
-class Track(BaseModel):
+class Song(BaseModel):
     id: int | None = Field(default=None)
     path: str = Field(description="Path to the audio file")
     fileprops: FileProperties = Field(description="File properties")

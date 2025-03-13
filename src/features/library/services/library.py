@@ -1,4 +1,4 @@
-# src.features.tracks.services.tracks
+# src.features.library.services.library
 from collections.abc import Iterator
 import logging
 from pathlib import Path
@@ -9,24 +9,24 @@ from PySide6.QtCore import QObject
 from mutagen._file import File, FileType
 from mutagen._util import MutagenError
 
-from src.features.tracks.models import TrackTableModel
-from src.features.tracks.schemas import (
+from src.features.library.models import SongModel
+from src.features.library.schemas import (
     AppData,
-    Track,
+    Song,
 )
-from src.features.tracks.repository import TracksRepository
-from src.features.tracks.utils.metadata import get_audio_properties, get_tags
+from src.features.library.repository import SongsRepository
+from src.features.library.utils.metadata import get_audio_properties, get_tags
 
 logger = logging.getLogger(__name__)
 
 
-class TracksServices(QObject):
-    """Handles track-related operations, primarily scanning and database population.
+class LibraryServices(QObject):
+    """Handles song-related operations, primarily scanning and database population.
 
     Attributes:
-        _track_model: The track table model.
+        _song_model: The song table model.
         _library_path: The path to the music library.
-        _repository: The tracks repository.
+        _repository: The songs repository.
         _get_time: A function that returns the current time.
         _paths: An iterator for traversing the library path.
         _loaded_audio_file: The currently loaded audio file.
@@ -36,22 +36,22 @@ class TracksServices(QObject):
 
     def __init__(
         self,
-        track_model: TrackTableModel,
+        song_model: SongModel,
         library_path: Path,
-        repository: TracksRepository,
+        repository: SongsRepository,
         get_time: Callable[[], float] = time.time,
     ) -> None:
-        """Initializes the TracksServices.
+        """Initializes the LibraryServices.
 
         Args:
-            track_model: The track table model.
+            song_model: The song table model.
             library_path: The path to the music library.
-            repository: The tracks repository.
+            repository: The songs repository.
             get_time: A function that returns the current time.
                 Defaults to time.time.
         """
         super().__init__()
-        self._track_model = track_model
+        self._song_model = song_model
         self._library_path = library_path
         self._repository = repository
         self._get_time = get_time
@@ -61,10 +61,10 @@ class TracksServices(QObject):
         self._audio_file_count: int = 0
 
     def populate_database(self) -> list[tuple[Path, Exception]]:
-        """Scans the library path and populates the database with track information.
+        """Scans the library path and populates the database with song information.
 
         Iterates through all files in the library path, extracts metadata
-        from audio files, and inserts track information into the database.
+        from audio files, and inserts song information into the database.
 
         Returns:
             A list of tuples. Each tuple contains the Path of a file
@@ -86,13 +86,13 @@ class TracksServices(QObject):
                     fileprops = get_audio_properties(self._loaded_audio_file, path)
                     tags = get_tags(self._loaded_audio_file)
                     app_data = AppData(added_date=time.time())
-                    track: Track = Track(
+                    song: Song = Song(
                         path=str(path),
                         fileprops=fileprops,
                         tags=tags,
                         app_data=app_data,
                     )
-                    self._repository.insert(track)
+                    self._repository.insert(song)
             else:
                 continue
 

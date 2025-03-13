@@ -3,18 +3,18 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 TableView {
-    id: trackTable
+    id: songTable
     Layout.fillWidth: true
     Layout.fillHeight: true
     clip: true
 
-    model: trackTableModel
+    model: songModel
 
     delegate: Rectangle {
         required property int row
-        implicitWidth: Math.max(100, trackTable.width / 3)
+        implicitWidth: Math.max(100, songTable.width / 3)
         implicitHeight: 40
-        color: trackTableModel.selectedTrackIndex === row ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
+        color: songModel.selectedSongIndex === row ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
         border.color: "#e0e0e0"
 
         Text {
@@ -32,8 +32,8 @@ TableView {
             }
             onDoubleClicked: {
                 playbackService.handleRowClick(row);
-                let trackPath = trackTableModel.data(trackTableModel.index(row, 0), Qt.UserRole + 4);
-                playbackService.toggle_playback(trackPath);
+                let songPath = songModel.data(songModel.index(row, 0), Qt.UserRole + 4);
+                playbackService.toggle_playback(songPath);
             }
         }
     }
