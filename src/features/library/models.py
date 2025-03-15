@@ -229,9 +229,9 @@ class MusicLibrary(QObject):
         self.songsChanged.emit()
 
     def loadAllPlaylists(self):
-        songs = self._playlists_repository.find_many()
-        self._playlist_model.setPlaylists(songs)
-        self.songsChanged.emit()
+        playlists = self._playlists_repository.find_many()
+        self._playlist_model.setPlaylists(playlists)
+        self.playlistsChanged.emit()
 
     @Slot(str)  # type: ignore
     def searchSongs(self, query: str):

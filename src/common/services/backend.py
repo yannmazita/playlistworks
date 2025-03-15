@@ -56,18 +56,16 @@ class BackendServices(QObject):
         super().__init__()
         self._library_path: Path | None = None
         self._songs_repository: SongsRepository = SongsRepository(connection)
-        self._playylists_repository: PlaylistsRepository = PlaylistsRepository(
+        self._playlists_repository: PlaylistsRepository = PlaylistsRepository(
             connection
         )
-        self._playylist_song_repository: PlaylistSongRepository = (
-            PlaylistSongRepository(
-                connection, self._playylists_repository, self._songs_repository
-            )
+        self._playlist_song_repository: PlaylistSongRepository = PlaylistSongRepository(
+            connection, self._playlists_repository, self._songs_repository
         )
         self._library = MusicLibrary(
             self._songs_repository,
-            self._playylists_repository,
-            self._playylist_song_repository,
+            self._playlists_repository,
+            self._playlist_song_repository,
         )
         self._library_services: LibraryServices | None = None
         self._playyback_service: PlaybackService = PlaybackService(
