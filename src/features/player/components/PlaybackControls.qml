@@ -99,13 +99,20 @@ Column {
         Button {
             id: playButton
             onClicked: {
-                if (backend.library.songModel.selectedSongIndex !== -1) {
-                    let songPath = backend.library.songModel.data(backend.library.songModel.index(backend.library.songModel.selectedSongIndex, 0), Qt.UserRole + 4);
-                    backend.playback.toggle_playback(songPath);
-                } else if (backend.playback.currentSongPath) {
-                    backend.playback.toggle_playback();
-                }
-            }
+              // If a song is already playing or paused, control that song
+              if (backend.playback.currentTrackPath) {
+                  // Just toggle the current song's state without specifying a path
+                  backend.playback.toggle_playback("");
+              }
+              // Otherwise start playing the selected song
+              else if (backend.library.songModel.selectedSongIndex !== -1) {
+                  let songPath = backend.library.songModel.data(
+                      backend.library.songModel.index(backend.library.songModel.selectedSongIndex, 0), 
+                      Qt.UserRole + 4
+                  );
+                  backend.playback.toggle_playback(songPath);
+              }
+          }
         }
 
         Button {
