@@ -1,8 +1,11 @@
 # src.features.playlists.repository
 import sqlite3
+import logging
 from src.features.library.repository import SongsRepository
 from src.features.library.schemas import Song, Playlist, PlaylistSong
 from src.common.repository import DatabaseRepository
+
+logger = logging.getLogger(__name__)
 
 
 class PlaylistsRepository(DatabaseRepository):
@@ -34,12 +37,13 @@ class PlaylistSongRepository(DatabaseRepository):
     def insert(self, model: PlaylistSong) -> int | None:
         """Add a song to a playlist"""
         data = model.model_dump(exclude={"id"})  # Exclude auto-incrementing ID
+        playlist_id = data["playlist_id"]
 
         if data["position"] is None:
             select_query = (
                 "SELECT MAX(position) FROM playlist_songs WHERE playlist_id = ?"
             )
-            row = self._execute_select_query(select_query, (id,), True)
+            row = self._execute_select_query(select_query, (playlist_id,), True)
             if row is not None:
                 data["position"] = 1 if row is None else row["position"] + 1
 
@@ -79,3 +83,33 @@ class PlaylistSongRepository(DatabaseRepository):
         """,
             (playlist_id, song_id),
         )
+
+    def update_song_position(
+        self, playlist_id: int, song_id: int, new_position: int
+    ) -> bool:
+        """Update a song's position within a playlist"""
+        try:
+            # Shift existing positions
+            self._execute_query(
+                """
+                UPDATE playlist_songs 
+                SET position = position + 1 
+                WHERE playlist_id = ? AND position >= ?
+            """,
+                (playlist_id, new_position),
+            )
+
+            # Update target position
+            self._execute_query(
+                """
+                UPDATE playlist_songs 
+                SET position = ? 
+                WHERE playlist_id = ? AND song_id = ?
+            """,
+                (new_position, playlist_id, song_id),
+            )
+
+            return True
+        except sqlite3.Error:
+            logger.exception("Error updating position", stack_info=True)
+            return False
