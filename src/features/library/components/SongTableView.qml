@@ -8,13 +8,19 @@ TableView {
     Layout.fillHeight: true
     clip: true
 
-    model: songModel
+    property bool inPlaylistMode: false
+
+    function getSourceModel() {
+        return inPlaylistMode ? backend.library.currentPlaylistSongs : backend.library.songModel;
+    }
+
+    model: getSourceModel()
 
     delegate: Rectangle {
         required property int row
         implicitWidth: Math.max(100, songTable.width / 3)
         implicitHeight: 40
-        color: songModel.selectedSongIndex === row ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
+        color: backend.library.songModel.selectedSongIndex === row ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
         border.color: "#e0e0e0"
 
         Text {
@@ -28,12 +34,12 @@ TableView {
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                playbackService.handleRowClick(row);
+                backend.playback.handleRowClick(row);
             }
             onDoubleClicked: {
-                playbackService.handleRowClick(row);
-                let songPath = songModel.data(songModel.index(row, 0), Qt.UserRole + 4);
-                playbackService.toggle_playback(songPath);
+                backend.playback.handleRowClick(row);
+                let songPath = backend.library.songModel.data(backend.library.songModel.index(row, 0), Qt.UserRole + 4);
+                backend.playback.toggle_playback(songPath);
             }
         }
     }

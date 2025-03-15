@@ -63,3 +63,22 @@ class Song(BaseModel):
             return values[0]
 
         return ", ".join(values)
+
+
+class Playlist(BaseModel):
+    id: int | None = Field(default=None, description="Playlist ID")
+    name: str = Field(description="Name of the playlist")
+    description: str | None = Field(
+        default=None, description="Description of the playlist"
+    )
+    query: str | None = Field(default=None, description="Query for dynamic playlists")
+    is_dynamic: bool = Field(
+        default=False, description="Is the playlist dynamic or static"
+    )
+
+
+class PlaylistSong(BaseModel):
+    id: int | None = Field(default=None, description="Playlist song ID")
+    playlist_id: int
+    song_id: int
+    position: int | None

@@ -50,12 +50,14 @@ ApplicationWindow {
     ColumnLayout {
         id: mainColumn
         anchors.fill: parent
+        Layout.fillWidth: true
 
         SearchBar {
             Layout.fillWidth: true
+            Layout.preferredHeight: 80
         }
 
-        SongTable {
+        SongTableView {
             id: songTable
         }
     }

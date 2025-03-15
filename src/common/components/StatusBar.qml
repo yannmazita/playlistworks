@@ -6,12 +6,12 @@ Rectangle {
     Layout.fillWidth: true
     height: 30
     color: "#f0f0f0"
-    property int songCount: songModel.rowCount()
+    property int songCount: backend.library.songModel.rowCount()
 
     Connections {
         target: backend
         function onScanFinished(error_paths) {
-            statusBar.songCount = songModel.rowCount();
+            statusBar.songCount = backend.library.songModel.rowCount();
         }
     }
 

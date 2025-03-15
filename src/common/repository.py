@@ -54,7 +54,7 @@ class DatabaseRepository(Generic[T]):
             row_dict = {key: row[key] for key in row.keys()}
             # Do not forget to add json fields here
             # Todo: maybe have a single 'json_data' field in models
-            for key in ("fileprops", "tags", "app_data", "raw_metadata"):
+            for key in ("fileprops", "tags", "app_data"):
                 if key in row_dict and row_dict[key] is not None:
                     row_dict[key] = json.loads(row_dict[key])
         elif isinstance(row, tuple):
@@ -75,7 +75,7 @@ class DatabaseRepository(Generic[T]):
         return self._row_to_model(row) if row else None  # type: ignore
 
     def find_one(self, query_dict: dict[str, Any]) -> T | None:
-        """Finds a single record matching criteria.  Simplified for SQLite."""
+        """Finds a single record matching criteria."""
         where_clauses = " AND ".join(f"{key} = ?" for key in query_dict)
         query = f"SELECT * FROM {self.table_name} WHERE {where_clauses} LIMIT 1"
         params = tuple(query_dict.values())
@@ -134,8 +134,8 @@ class DatabaseRepository(Generic[T]):
 
         # Serialize JSON fields
         # Do not forget to add json fields here
-        # Todo: maybe have a single 'json_data' field in models
-        for key in ("fileprops", "tags", "app_data", "raw_metadata"):
+        # Todo: maybe have a single 'json_data' field in models or 'json' prefix
+        for key in ("fileprops", "tags", "app_data"):
             if key in data and data[key] is not None:
                 data[key] = json.dumps(data[key])
 
@@ -151,8 +151,8 @@ class DatabaseRepository(Generic[T]):
 
         # Serialize JSON fields
         # Do not forget to add json fields here
-        # Todo: maybe have a single 'json_data' field in models
-        for key in ("fileprops", "tags", "app_data", "raw_metadata"):
+        # Todo: maybe have a single 'json_data' field in models or 'json' prefix
+        for key in ("fileprops", "tags", "app_data"):
             if key in data and data[key] is not None:
                 data[key] = json.dumps(data[key])
 

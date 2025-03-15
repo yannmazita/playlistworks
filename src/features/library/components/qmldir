@@ -1,2 +1,2 @@
 module library.components
-SongTable 1.0 SongTable.qml
+SongTableView 1.0 SongTableView.qml

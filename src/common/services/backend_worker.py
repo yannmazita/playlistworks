@@ -4,9 +4,13 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot
 
 from src.common.database import get_db_connection
-from src.features.library.models import SongModel
+from src.features.library.models import MusicLibrary
 from src.features.library.repository import SongsRepository
 from src.features.library.services.library import LibraryServices
+from src.features.playlists.repository import (
+    PlaylistSongRepository,
+    PlaylistsRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +25,10 @@ class BackendWorker(QObject):
         scanError: Emitted if an error occurs during the scan.
 
     Attributes:
-        song_model: Model for the GUI song table.
         songs_repository: Repository for song database operations.
+        playlists_repository: Repository for playlist database operations.
+        playlist_song_repository: Repository for playlist_song database operations.
+        library: Library model
         library_services: Service for library-related logic.
         is_running: A boolean, True if scan is running
     """
@@ -35,7 +41,6 @@ class BackendWorker(QObject):
     def __init__(self):
         """Initializes the BackendWorker."""
         super().__init__()
-        self.song_model = None
         self.songs_repository = None
         self.library_services = None
         self.is_running = False
@@ -58,9 +63,18 @@ class BackendWorker(QObject):
             # Using thread-specific connection (and repository) because sqlite is not thread-safe
             connection = get_db_connection()
             self.songs_repository = SongsRepository(connection)
-            self.song_model = SongModel(self.songs_repository)
+            self.playlists_repository = PlaylistsRepository(connection)
+            self.playlist_song_repository = PlaylistSongRepository(
+                connection, self.playlists_repository, self.songs_repository
+            )
+            self.library = MusicLibrary(
+                self.songs_repository,
+                self.playlists_repository,
+                self.playlist_song_repository,
+            )
             self.library_services = LibraryServices(
-                self.song_model, library_path, self.songs_repository
+                library_path,
+                self.songs_repository,
             )
             return True
         except Exception as e:
@@ -108,4 +122,5 @@ class BackendWorker(QObject):
             logger.exception(e, stack_info=True)
             return
         finally:
+            self.library.loadAllSongs()
             self.is_running = False

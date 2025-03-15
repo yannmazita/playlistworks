@@ -3,13 +3,17 @@ import logging
 from pathlib import Path
 from sqlite3 import Connection
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import Property, QObject, QThread, Signal, Slot
 
 from src.features.player.services.playback import PlaybackService
-from src.features.library.models import SongModel
+from src.features.library.models import MusicLibrary
 from src.features.library.repository import SongsRepository
 from src.features.library.services.library import LibraryServices
 from src.common.services.backend_worker import BackendWorker
+from src.features.playlists.repository import (
+    PlaylistSongRepository,
+    PlaylistsRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,41 +54,55 @@ class BackendServices(QObject):
             connection: The database connection.
         """
         super().__init__()
-        self.library_path: Path | None = None
-        self.songs_repository: SongsRepository = SongsRepository(connection)
-        self.library_services: LibraryServices | None = None
-        self.song_model: SongModel = SongModel(self.songs_repository)
-        self.playback_service: PlaybackService = PlaybackService(self.song_model)
+        self._library_path: Path | None = None
+        self._songs_repository: SongsRepository = SongsRepository(connection)
+        self._playylists_repository: PlaylistsRepository = PlaylistsRepository(
+            connection
+        )
+        self._playylist_song_repository: PlaylistSongRepository = (
+            PlaylistSongRepository(
+                connection, self._playylists_repository, self._songs_repository
+            )
+        )
+        self._library = MusicLibrary(
+            self._songs_repository,
+            self._playylists_repository,
+            self._playylist_song_repository,
+        )
+        self._library_services: LibraryServices | None = None
+        self._playyback_service: PlaybackService = PlaybackService(
+            self._library.get_song_model()
+        )
 
         # Setup worker thread
-        self.worker_thread = QThread()
-        self.worker = BackendWorker()
-        self.worker.moveToThread(self.worker_thread)
+        self._worker_thread = QThread()
+        self._worker = BackendWorker()
+        self._worker.moveToThread(self._worker_thread)
 
         # Connect worker signals to local signals for forwarding
-        self.worker.scanStarted.connect(self.scanStarted)
-        self.worker.scanProgress.connect(self.scanProgress)
-        self.worker.scanFinished.connect(self.scanFinished)
-        self.worker.scanError.connect(self.scanError)
+        self._worker.scanStarted.connect(self.scanStarted)
+        self._worker.scanProgress.connect(self.scanProgress)
+        self._worker.scanFinished.connect(self.scanFinished)
+        self._worker.scanError.connect(self.scanError)
 
         # Connect scan start signal to worker slot
-        self._startScan.connect(self.worker.scan_library)
+        self._startScan.connect(self._worker.scan_library)
 
-        self.worker_thread.start()
+        self._worker_thread.start()
 
     def __del__(self):
         """Clean up the worker thread."""
-        if hasattr(self, "worker_thread") and self.worker_thread.isRunning():
-            self.worker_thread.quit()
-            self.worker_thread.wait()
+        if hasattr(self, "worker_thread") and self._worker_thread.isRunning():
+            self._worker_thread.quit()
+            self._worker_thread.wait()
 
     def _initialize_services(self):
         """Initialize services with the current library path."""
-        if self.library_path:
-            self.library_services = LibraryServices(
-                self.song_model, self.library_path, self.songs_repository
+        if self._library_path:
+            self._library_services = LibraryServices(
+                self._library_path,
+                self._songs_repository,
             )
-        # self.playback_service = PlaybackService()
 
     @Slot(str)  # type: ignore
     def set_library_path(self, library_path: str):
@@ -99,7 +117,7 @@ class BackendServices(QObject):
         path = Path(library_path)
         if not path.is_dir():
             raise ValueError(f"Invalid library path: {path}")
-        self.library_path = path
+        self._library_path = path
         self._initialize_services()
 
     @Slot()
@@ -109,10 +127,20 @@ class BackendServices(QObject):
         Emits scanError if the library path is not set. Otherwise,
         emits the _startScan signal to trigger the scan in the worker thread.
         """
-        if not self.library_path:
+        if not self._library_path:
             self.scanError.emit(
                 "Library path not set. Please set a library path first."
             )
             return
 
-        self._startScan.emit(self.library_path)
+        self._startScan.emit(self._library_path)
+
+    def get_library(self):
+        return self._library
+
+    library = Property(QObject, fget=get_library, fset=None, constant=True)  # type: ignore
+
+    def get_playback(self):
+        return self._playyback_service
+
+    playback = Property(QObject, fget=get_playback, fset=None, constant=True)  # type: ignore

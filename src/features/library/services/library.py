@@ -9,7 +9,6 @@ from PySide6.QtCore import QObject
 from mutagen._file import File, FileType
 from mutagen._util import MutagenError
 
-from src.features.library.models import SongModel
 from src.features.library.schemas import (
     AppData,
     Song,
@@ -24,7 +23,6 @@ class LibraryServices(QObject):
     """Handles song-related operations, primarily scanning and database population.
 
     Attributes:
-        _song_model: The song table model.
         _library_path: The path to the music library.
         _repository: The songs repository.
         _get_time: A function that returns the current time.
@@ -36,7 +34,6 @@ class LibraryServices(QObject):
 
     def __init__(
         self,
-        song_model: SongModel,
         library_path: Path,
         repository: SongsRepository,
         get_time: Callable[[], float] = time.time,
@@ -44,14 +41,12 @@ class LibraryServices(QObject):
         """Initializes the LibraryServices.
 
         Args:
-            song_model: The song table model.
             library_path: The path to the music library.
             repository: The songs repository.
             get_time: A function that returns the current time.
                 Defaults to time.time.
         """
         super().__init__()
-        self._song_model = song_model
         self._library_path = library_path
         self._repository = repository
         self._get_time = get_time

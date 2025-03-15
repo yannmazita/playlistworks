@@ -24,7 +24,7 @@ Column {
     }
 
     Connections {
-        target: playbackService
+        target: backend.playback
         function onPlaybackStateChanged(state) {
             if (playbackValue !== state) {
                 playbackValue = state;
@@ -71,7 +71,7 @@ Column {
 
             onMoved: {
                 if (!blockUpdate) {
-                    playbackService.seek(value);
+                    backend.playback.seek(value);
                 }
             }
         }
@@ -92,18 +92,18 @@ Column {
             id: skipBackButton
             text: qsTr("Back")
             onClicked: {
-                playbackService.skip_backward();
+                backend.playback.skip_backward();
             }
         }
 
         Button {
             id: playButton
             onClicked: {
-                if (songModel.selectedSongIndex !== -1) {
-                    let songPath = songModel.data(songModel.index(songModel.selectedSongIndex, 0), Qt.UserRole + 4);
-                    playbackService.toggle_playback(songPath);
-                } else if (playbackService.currentSongPath) {
-                    playbackService.toggle_playback();
+                if (backend.library.songModel.selectedSongIndex !== -1) {
+                    let songPath = backend.library.songModel.data(backend.library.songModel.index(backend.library.songModel.selectedSongIndex, 0), Qt.UserRole + 4);
+                    backend.playback.toggle_playback(songPath);
+                } else if (backend.playback.currentSongPath) {
+                    backend.playback.toggle_playback();
                 }
             }
         }
@@ -112,7 +112,7 @@ Column {
             id: skipForwardButton
             text: qsTr("Forward")
             onClicked: {
-                playbackService.skip_forward();
+                backend.playback.skip_forward();
             }
         }
     }

@@ -43,8 +43,7 @@ def initialize_database(conn: sqlite3.Connection):
                 path TEXT UNIQUE NOT NULL,
                 fileprops TEXT NOT NULL,
                 tags TEXT NOT NULL,
-                app_data TEXT NOT NULL,
-                raw_metadata TEXT
+                app_data TEXT NOT NULL
             )
         """
         )
@@ -52,10 +51,23 @@ def initialize_database(conn: sqlite3.Connection):
             """
             CREATE TABLE IF NOT EXISTS playlists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                description TEXT DEFAULT '',
-                query TEXT DEFAULT '',
-                playlist_type TEXT NOT NULL CHECK(playlist_type IN ('static', 'dynamic'))
+                name TEXT,
+                description TEXT,
+                query TEXT,
+                is_dynamic BOOLEAN NOT NULL
+            )
+        """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS playlist_songs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                playlist_id INTEGER,
+                song_id INTEGER,
+                query TEXT,
+                is_dynamic BOOLEAN NOT NULL,
+                FOREIGN KEY (playlist_id) REFERENCES playlists(id),
+                FOREIGN KEY (song_id) REFERENCES songs(id)
             )
         """
         )
