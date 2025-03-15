@@ -77,11 +77,12 @@ def test_initialize_database(db_connection):
     tables = [row["name"] for row in cursor.fetchall()]
 
     # Verify tables exist
-    assert "tracks" in tables
+    assert "songs" in tables
     assert "playlists" in tables
+    assert "playlist_songs" in tables
 
-    # Check tracks table schema
-    cursor = db_connection.execute("PRAGMA table_info(tracks)")
+    # Check songs table schema
+    cursor = db_connection.execute("PRAGMA table_info(songs)")
     columns = {row["name"]: row for row in cursor.fetchall()}
 
     assert "id" in columns
@@ -102,7 +103,17 @@ def test_initialize_database(db_connection):
     assert "name" in columns
     assert "description" in columns
     assert "query" in columns
-    assert "playlist_type" in columns
+    assert "is_dynamic" in columns
+
+    # Check playlist_song table schema
+    cursor = db_connection.execute("PRAGMA table_info(playlist_songs)")
+    columns = {row["name"]: row for row in cursor.fetchall()}
+
+    assert "id" in columns
+    assert "playlist_id" in columns
+    assert "song_id" in columns
+    assert "query" in columns
+    assert "is_dynamic" in columns
 
     # Check indexes
     cursor = db_connection.execute("SELECT name FROM sqlite_master WHERE type='index'")
