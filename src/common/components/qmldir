@@ -1,4 +1,5 @@
 module common.components
+HelpDialog 1.0 HelpDialog.qml
 LibraryDirectoryDialog 1.0 LibraryDirectoryDialog.qml
 LibraryScanningDialog 1.0 LibraryScanningDialog.qml
 ErrorDialog 1.0 ErrorDialog.qml

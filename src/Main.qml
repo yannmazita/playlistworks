@@ -12,6 +12,9 @@ ApplicationWindow {
     height: 600
     title: "playlistworks"
 
+    HelpDialog {
+        id: helpDialog
+    }
     LibraryDirectoryDialog {
         id: libraryDirectoryDialog
     }
@@ -39,6 +42,13 @@ ApplicationWindow {
             Action {
                 text: qsTr("Quit")
                 onTriggered: Qt.quit()
+            }
+        }
+        Menu {
+            title: qsTr("Help")
+            Action {
+                text: qsTr("Query Syntax")
+                onTriggered: helpDialog.open()
             }
         }
     }
