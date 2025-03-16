@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import QtMultimedia
 
 Column {
-    spacing: 10
+    anchors.fill: parent
     property int playbackValue: 1
 
     // Format time in MM:SS format

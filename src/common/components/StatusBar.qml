@@ -20,17 +20,16 @@ Rectangle {
     }
     RowLayout {
         anchors.fill: parent
-        
+
         ToolButton {
             id: shuffleButton
             text: qsTr("Shuffle")
             checkable: true
             checked: statusBar.shuffleEnabled
+            Layout.preferredHeight: 40
             
             background: Rectangle {
-                implicitWidth: 60
-                implicitHeight: 30
-                color: shuffleButton.checked ? "#a0c0e0" : "#e0e0e0"
+                color: shuffleButton.checked ? "#a0c0e0" : "transparent"
             }
             
             onClicked: {
@@ -38,10 +37,9 @@ Rectangle {
                 console.log("Shuffle mode:", statusBar.shuffleEnabled)
             }
         }
-        
-        // Group container for repeat controls
+
         Rectangle {
-            Layout.preferredHeight: repeatButton.height
+            Layout.preferredHeight: shuffleButton.height
             Layout.preferredWidth: repeatButton.width + repeatOption.width
             color: "#e0e0e0"
             
@@ -54,6 +52,7 @@ Rectangle {
                     text: qsTr("Repeat")
                     checkable: true
                     checked: statusBar.repeatEnabled
+                    Layout.preferredHeight: shuffleButton.height
                     
                     background: Rectangle {
                         color: repeatButton.checked ? "#a0c0e0" : "transparent"
@@ -65,24 +64,20 @@ Rectangle {
                         console.log("Repeat mode:", statusBar.repeatEnabled ? statusBar.repeatMode : "off")
                     }
                 }
-                
+
                 ToolButton {
                     id: repeatOption
                     text: qsTr("▼")
                     implicitWidth: 24
+                    Layout.preferredHeight: shuffleButton.height
+                    
                     onClicked: repeatMenu.popup()
-                    background: Rectangle {
-                        color: "transparent"
-                    }
                     
                     Menu {
                         id: repeatMenu
                         y: repeatOption.height
-                        
-                        ButtonGroup {
-                            id: repeatGroup
-                        }
-                        
+                        ButtonGroup { id: repeatGroup }
+
                         MenuItem {
                             id: repeatAllOption
                             checkable: true
@@ -98,7 +93,7 @@ Rectangle {
                                 console.log("Repeat mode set to:", statusBar.repeatMode)
                             }
                         }
-                        
+
                         MenuItem {
                             id: repeatTrackOption
                             checkable: true
@@ -114,7 +109,7 @@ Rectangle {
                                 console.log("Repeat mode set to:", statusBar.repeatMode)
                             }
                         }
-                        
+
                         MenuItem {
                             id: oneSongOption
                             checkable: true
@@ -134,10 +129,11 @@ Rectangle {
                 }
             }
         }
-        
+
         Text {
-          id: statusBarText
-          text: "Songs: " + statusBar.songCount
+            id: statusBarText
+            text: "Songs: " + statusBar.songCount
+            Layout.alignment: Qt.AlignVCenter
         }
     }
 }
