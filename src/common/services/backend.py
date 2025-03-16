@@ -68,9 +68,7 @@ class BackendServices(QObject):
             self._playlist_song_repository,
         )
         self._library_services: LibraryServices | None = None
-        self._playyback_service: PlaybackService = PlaybackService(
-            self._library.get_song_model()
-        )
+        self._playback_service: PlaybackService = PlaybackService(self._library)
 
         # Setup worker thread
         self._worker_thread = QThread()
@@ -139,6 +137,6 @@ class BackendServices(QObject):
     library = Property(QObject, fget=get_library, fset=None, constant=True)  # type: ignore
 
     def get_playback(self):
-        return self._playyback_service
+        return self._playback_service
 
     playback = Property(QObject, fget=get_playback, fset=None, constant=True)  # type: ignore

@@ -2,12 +2,13 @@
 # ruff: noqa: E402
 import logging
 import gi
+import random
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib  # type: ignore
 from PySide6.QtCore import Qt, QObject, Signal, Slot, Property
 
-from src.features.library.models import SongModel
+from src.features.library.models import MusicLibrary
 
 Gst.init(None)
 
@@ -27,46 +28,44 @@ class PlaybackService(QObject):
             current playback position. The position is in milliseconds.
         durationChanged(int): Emitted when the duration of the current song
             is determined or changes. The duration is in milliseconds.
-
-    Properties:
-        position (int): The current playback position in milliseconds.
-        duration (int): The total duration of the current song in milliseconds.
-        currentTrackPath (str): The file path of the currently playing song.
-        playbackState (int): The current GStreamer playback state.
+        repeatModeChanged(int): Emitted when the repeat mode changes.
+        shuffleModeChanged(bool): Emitted when the shuffle mode changes.
     """
+
+    # Playback repeat modes
+    REPEAT_OFF = 0
+    REPEAT_ALL = 1
+    REPEAT_TRACK = 2
+    REPEAT_ONE_SONG = 3
+
+    GST_STATE_VOID_PENDING = (
+        Gst.State.VOID_PENDING
+    )  # Element in the process of changing state but target state unknown yet
+    GST_STATE_NULL = (
+        Gst.State.NULL
+    )  # Initial state of an element, set when element is created or reset
+    GST_STATE_READY = (
+        Gst.State.READY
+    )  # Element is ready to accept data but not yet processing any. Buffers allocated
+    GST_STATE_PAUSED = Gst.State.PAUSED
+    GST_STATE_PLAYING = Gst.State.PLAYING
 
     currentTrackChanged = Signal(str)
     playbackStateChanged = Signal(int)
     positionChanged = Signal(int)  # Position in ms
     durationChanged = Signal(int)  # Duration in ms
+    repeatModeChanged = Signal(int)
+    shuffleModeChanged = Signal(bool)
 
-    GST_STATE_VOID_PENDING = Gst.State.VOID_PENDING
-    """Represents an element that is in the process of changing state, but the
-    target state is not yet known."""
-    GST_STATE_NULL = Gst.State.NULL
-    """The NULL state is the initial state of an element.  It is typically set
-    when an element is created or when it is reset."""
-    GST_STATE_READY = Gst.State.READY
-    """The READY state is the state where an element is prepared to accept data,
-    but it is not yet processing data. Buffers are allocated, and the element
-    is ready to transition to the PAUSED state."""
-    GST_STATE_PAUSED = Gst.State.PAUSED
-    """In the PAUSED state, an element is ready to accept and process data, but
-    it is not actively doing so. The element is typically waiting for a preroll
-    to complete or for the application to explicitly start playback."""
-    GST_STATE_PLAYING = Gst.State.PLAYING
-    """The PLAYING state is the state where the element is actively processing
-    data and time is progressing."""
-
-    def __init__(self, song_model: SongModel):
+    def __init__(self, library: MusicLibrary):
         """
         Initializes the PlaybackService.
 
         Args:
-            song_model: The model providing song data.
+            library: The music library model.
         """
         super().__init__()
-        self._song_model = song_model
+        self._library = library
 
         self.player = Gst.ElementFactory.make("playbin", "player")
         if not self.player:
@@ -81,6 +80,11 @@ class PlaybackService(QObject):
         self._current_song_path = ""
         self._playback_state = Gst.State.NULL
 
+        # Shuffle and repeat mode properties
+        self._shuffle_mode = False
+        self._repeat_mode = self.REPEAT_OFF
+        self._shuffled_indices = []
+
         # Create a mainloop for message processing
         self._main_loop = GLib.MainLoop()
         self._main_loop_thread = GLib.Thread.new("gst-thread", self._run_main_loop)
@@ -91,6 +95,10 @@ class PlaybackService(QObject):
         # Set up a timer to poll position during playback
         self._position_timer = None
         self._setup_position_timer()
+
+        # Connect to library signals
+        self._library.songsChanged.connect(self._on_songs_changed)
+        self._library.currentPlaylistSongsChanged.connect(self._on_songs_changed)
 
     def get_current_song_path(self):
         return self._current_song_path
@@ -127,6 +135,51 @@ class PlaybackService(QObject):
         return self._duration
 
     duration = Property(int, fget=get_duration, notify=durationChanged)  # type: ignore
+
+    def get_shuffle_mode(self):
+        return self._shuffle_mode
+
+    @Slot(bool)  # type: ignore
+    def set_shuffle_mode(self, enabled: bool):
+        if self._shuffle_mode != enabled:
+            self._shuffle_mode = enabled
+            self.shuffleModeChanged.emit(enabled)
+            if enabled:
+                self._generate_shuffled_indices()
+            logger.info(f"Shuffle mode: {'ON' if enabled else 'OFF'}")
+
+    shuffleMode = Property(
+        bool,
+        fget=get_shuffle_mode,  # type: ignore
+        fset=set_shuffle_mode,
+        notify=shuffleModeChanged,
+    )
+
+    def get_repeat_mode(self):
+        return self._repeat_mode
+
+    @Slot(int)  # type: ignore
+    def set_repeat_mode(self, mode: int):
+        if mode not in (
+            self.REPEAT_OFF,
+            self.REPEAT_ALL,
+            self.REPEAT_TRACK,
+            self.REPEAT_ONE_SONG,
+        ):
+            logger.warning(f"Invalid repeat mode: {mode}")
+            return
+
+        if self._repeat_mode != mode:
+            self._repeat_mode = mode
+            self.repeatModeChanged.emit(mode)
+            logger.info(f"Repeat mode set to: {mode}")
+
+    repeatMode = Property(
+        int,
+        fget=get_repeat_mode,  # type: ignore
+        fset=set_repeat_mode,
+        notify=repeatModeChanged,
+    )
 
     def _run_main_loop(self):
         """Run the GLib main loop for GStreamer message processing"""
@@ -171,10 +224,53 @@ class PlaybackService(QObject):
         t = message.type
 
         if t == Gst.MessageType.EOS:
-            # End of stream
-            self.player.set_state(Gst.State.NULL)
-            self._update_playback_state(Gst.State.NULL)
-            logger.info("End of stream reached")
+            # End of stream - handle according to repeat mode
+            if self._repeat_mode == self.REPEAT_TRACK:
+                # Repeat the current track
+                self.seek(0)
+                self.player.set_state(Gst.State.PLAYING)
+                logger.info("Restarting current track (repeat track mode)")
+            elif self._repeat_mode == self.REPEAT_ALL:
+                # Play the next song, or go back to the first if at the end
+                current_index = self._library.get_song_model().get_selected_song_index()
+                next_index = self._get_next_index(current_index)
+
+                if next_index is not None:
+                    self._library.get_song_model().set_selected_song_index(next_index)
+                    song_path = self._library.get_song_model().data(
+                        self._library.get_song_model().index(next_index, 0),
+                        Qt.UserRole + 4,  # type: ignore
+                    )
+                    self.play(song_path)
+                    logger.info(f"Playing next song (repeat all mode): {next_index}")
+                else:
+                    # Should not happen with repeat all, but just in case
+                    self.player.set_state(Gst.State.NULL)
+                    self._update_playback_state(Gst.State.NULL)
+                    logger.info("End of playlist reached with no next song")
+            elif self._repeat_mode == self.REPEAT_OFF:
+                # In REPEAT_OFF mode, continue to next song but don't loop at end
+                current_index = self._library.get_song_model().get_selected_song_index()
+                next_index = self._get_next_index(current_index)
+
+                if next_index is not None:
+                    self._library.get_song_model().set_selected_song_index(next_index)
+                    song_path = self._library.get_song_model().data(
+                        self._library.get_song_model().index(next_index, 0),
+                        Qt.UserRole + 4,  # type: ignore
+                    )
+                    self.play(song_path)
+                    logger.info(f"Playing next song (repeat off mode): {next_index}")
+                else:
+                    # End of playlist reached, stop playback
+                    self.player.set_state(Gst.State.NULL)
+                    self._update_playback_state(Gst.State.NULL)
+                    logger.info("End of playlist reached, stopping playback")
+            else:
+                # REPEAT_ONE_SONG or any other mode: stop at the end
+                self.player.set_state(Gst.State.NULL)
+                self._update_playback_state(Gst.State.NULL)
+                logger.info("End of stream reached")
 
         elif t == Gst.MessageType.ERROR:
             self.player.set_state(Gst.State.NULL)
@@ -206,8 +302,107 @@ class PlaybackService(QObject):
                 if self._position_timer and not self._position_timer.isActive():
                     self._position_timer.start()
             else:
-                if self._position_timer and not self._position_timer.isActive():
+                if self._position_timer and self._position_timer.isActive():
                     self._position_timer.stop()
+
+    @Slot()
+    def _on_songs_changed(self):
+        """Handle the songsChanged signal from MusicLibrary."""
+        if self._shuffle_mode:
+            self._generate_shuffled_indices()
+
+    def _generate_shuffled_indices(self):
+        """Generate a shuffled list of indices for the current playlist"""
+        count = self._library.get_song_model().rowCount()
+        if count == 0:
+            self._shuffled_indices = []
+            return
+
+        # Create list of indices and shuffle it
+        indices = list(range(count))
+        random.shuffle(indices)
+
+        # If a song is currently playing, move its index to the beginning
+        current_index = self._library.get_song_model().get_selected_song_index()
+        if current_index != -1 and current_index in indices:
+            indices.remove(current_index)
+            indices.insert(0, current_index)
+
+        self._shuffled_indices = indices
+
+    def _get_next_index(self, current_index):
+        """Get the next song index based on current settings"""
+        count = self._library.get_song_model().rowCount()
+        if count == 0:
+            return None
+
+        if self._repeat_mode == self.REPEAT_TRACK:
+            return current_index
+
+        if self._shuffle_mode:
+            if not self._shuffled_indices:
+                self._generate_shuffled_indices()
+
+            try:
+                current_pos = self._shuffled_indices.index(current_index)
+                if current_pos + 1 < len(self._shuffled_indices):
+                    return self._shuffled_indices[current_pos + 1]
+                elif self._repeat_mode == self.REPEAT_ALL:
+                    return self._shuffled_indices[0]  # Wrap around
+                else:
+                    return None  # End of shuffled list
+            except ValueError:
+                # Current index not in shuffled list, regenerate
+                self._generate_shuffled_indices()
+                if self._shuffled_indices:
+                    return self._shuffled_indices[0]
+                return None
+        else:
+            # Sequential playback
+            next_index = current_index + 1
+            if next_index < count:
+                return next_index
+            elif self._repeat_mode == self.REPEAT_ALL:
+                return 0  # Wrap around to beginning
+            else:
+                return None  # End of playlist
+
+    def _get_previous_index(self, current_index):
+        """Get the previous song index based on current settings"""
+        count = self._library.get_song_model().rowCount()
+        if count == 0:
+            return None
+
+        if self._repeat_mode == self.REPEAT_TRACK:
+            return current_index
+
+        if self._shuffle_mode:
+            if not self._shuffled_indices:
+                self._generate_shuffled_indices()
+
+            try:
+                current_pos = self._shuffled_indices.index(current_index)
+                if current_pos > 0:
+                    return self._shuffled_indices[current_pos - 1]
+                elif self._repeat_mode == self.REPEAT_ALL:
+                    return self._shuffled_indices[-1]  # Wrap around to end
+                else:
+                    return None  # Beginning of shuffled list
+            except ValueError:
+                # Current index not in shuffled list, regenerate
+                self._generate_shuffled_indices()
+                if self._shuffled_indices:
+                    return self._shuffled_indices[0]
+                return None
+        else:
+            # Sequential playback
+            prev_index = current_index - 1
+            if prev_index >= 0:
+                return prev_index
+            elif self._repeat_mode == self.REPEAT_ALL:
+                return count - 1  # Wrap around to end
+            else:
+                return None  # Beginning of playlist
 
     @Slot(str)  # type: ignore
     def play(self, path: str | None = None):
@@ -299,52 +494,110 @@ class PlaybackService(QObject):
 
     @Slot()  # type: ignore
     def skip_forward(self):
-        """Skip to next song"""
-        current_index = self._song_model.get_selected_song_index()
+        """Skip to next song based on current playback modes"""
+        current_index = self._library.get_song_model().get_selected_song_index()
+
+        # If we're in REPEAT_ONE_SONG mode and already playing, do nothing
+        if (
+            self._repeat_mode == self.REPEAT_ONE_SONG
+            and self._playback_state == Gst.State.PLAYING
+        ):
+            logger.info("Skip forward ignored in one song mode")
+            return
+
+        # If in REPEAT_TRACK mode, just restart the current song
+        if (
+            self._repeat_mode == self.REPEAT_TRACK
+            and self._playback_state == Gst.State.PLAYING
+        ):
+            self.seek(0)
+            logger.info("Restarting current track (repeat track mode)")
+            return
+
         if current_index == -1:
             # No song selected, select first song
-            if self._song_model.rowCount() > 0:
-                self._song_model.set_selected_song_index(0)
-                song_path = self._song_model.data(
-                    self._song_model.index(0, 0),
+            if self._library.get_song_model().rowCount() > 0:
+                # In shuffle mode, use first shuffled index
+                if self._shuffle_mode:
+                    if not self._shuffled_indices:
+                        self._generate_shuffled_indices()
+                    if self._shuffled_indices:
+                        index_to_play = self._shuffled_indices[0]
+                        self._library.get_song_model().set_selected_song_index(
+                            index_to_play
+                        )
+                        song_path = self._library.get_song_model().data(
+                            self._library.get_song_model().index(index_to_play, 0),
+                            Qt.UserRole + 4,  # type: ignore
+                        )
+                        self.play(song_path)
+                    return
+
+                # Normal sequential mode
+                self._library.get_song_model().set_selected_song_index(0)
+                song_path = self._library.get_song_model().data(
+                    self._library.get_song_model().index(0, 0),
                     Qt.UserRole + 4,  # type: ignore
                 )
                 self.play(song_path)
         else:
-            # Go to next song if available
-            next_index = current_index + 1
-            if next_index < self._song_model.rowCount():
-                self._song_model.set_selected_song_index(next_index)
-                song_path = self._song_model.data(
-                    self._song_model.index(next_index, 0),
+            # Go to next song based on current mode
+            next_index = self._get_next_index(current_index)
+
+            if next_index is not None:
+                self._library.get_song_model().set_selected_song_index(next_index)
+                song_path = self._library.get_song_model().data(
+                    self._library.get_song_model().index(next_index, 0),
                     Qt.UserRole + 4,  # type: ignore
                 )
                 self.play(song_path)
             else:
-                logger.info("Already at last song")
+                logger.info("End of playlist reached")
 
     @Slot()  # type: ignore
     def skip_backward(self):
-        """Skip to previous song or restart current song"""
-        current_index = self._song_model.get_selected_song_index()
+        """Skip to previous song or restart current song based on current playback modes"""
+        current_index = self._library.get_song_model().get_selected_song_index()
+
+        # If we're in REPEAT_ONE_SONG mode, do nothing
+        if self._repeat_mode == self.REPEAT_ONE_SONG:
+            logger.info("Skip backward ignored in one song mode")
+            return
 
         # If we're more than 3 seconds into the song, restart it
         if self._position > 3000:
             self.seek(0)
             return
 
+        # If in REPEAT_TRACK mode, just restart the current song
+        if self._repeat_mode == self.REPEAT_TRACK:
+            self.seek(0)
+            return
+
         # Otherwise go to previous song
-        if current_index > 0:
-            prev_index = current_index - 1
-            self._song_model.set_selected_song_index(prev_index)
-            song_path = self._song_model.data(
-                self._song_model.index(prev_index, 0),
+        prev_index = self._get_previous_index(current_index)
+
+        if prev_index is not None:
+            self._library.get_song_model().set_selected_song_index(prev_index)
+            song_path = self._library.get_song_model().data(
+                self._library.get_song_model().index(prev_index, 0),
                 Qt.UserRole + 4,  # type: ignore
             )
             self.play(song_path)
         else:
-            logger.info("Already at first song")
+            logger.info("Beginning of playlist reached")
             self.seek(0)  # Restart song anyway
+
+    @Slot()  # type: ignore
+    def toggle_shuffle(self):
+        """Toggle shuffle mode on/off"""
+        self.set_shuffle_mode(not self._shuffle_mode)
+
+    @Slot()  # type: ignore
+    def cycle_repeat_mode(self):
+        """Cycle through repeat modes: Off -> All -> Track -> One Song -> Off"""
+        next_mode = (self._repeat_mode + 1) % 4  # Cycle through 0-3
+        self.set_repeat_mode(next_mode)
 
     @Slot(int)  # type: ignore
     def handleRowClick(self, row: int):
@@ -353,6 +606,6 @@ class PlaybackService(QObject):
         Args:
             row: The row index that was clicked.
         """
-        if 0 <= row < self._song_model.rowCount():
-            self._song_model.set_selected_song_index(row)
+        if 0 <= row < self._library.get_song_model().rowCount():
+            self._library.get_song_model().set_selected_song_index(row)
             logging.debug(f"Row {row} clicked")
