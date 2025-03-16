@@ -245,7 +245,7 @@ class SQLGenerator:
             "album": ("tags", "ALBUM", "text"),
             "genre": ("tags", "GENRE", "text"),
             "albumartist": ("tags", "ALBUM_ARTIST", "text"),
-            "year": ("tags", "DATE", "text"),  # Todo: Date might need special handling
+            "date": ("tags", "DATE", "text"),  # Todo: Date might need special handling
             # App data fields
             "play_count": ("app_data", "play_count", "numeric"),
             "rating": ("app_data", "rating", "numeric"),
@@ -307,7 +307,7 @@ class SQLGenerator:
                         return f"{field_expr} LIKE ?", [f"%{value}%"]
                 elif field_type == "numeric":
                     # Handle special numeric field values
-                    if field == "year" and value.endswith("s"):
+                    if field == "date" and value.endswith("s"):
                         # Handle decade (e.g., 1980s)
                         try:
                             decade = int(value[:-1])
