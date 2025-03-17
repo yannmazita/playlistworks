@@ -17,15 +17,21 @@ Rectangle {
 
     // Helper function to get the currently active repeat mode
     function getActiveRepeatMode() {
-        if (repeatAllOption.checked) return repeatAll;
-        if (repeatTrackOption.checked) return repeatTrack;
-        if (oneSongOption.checked) return repeatOneSong;
+        if (repeatAllOption.checked)
+            return repeatAll;
+        if (repeatTrackOption.checked)
+            return repeatTrack;
+        if (oneSongOption.checked)
+            return repeatOneSong;
         return repeatOff; // Default to off
     }
 
     Connections {
-        target: backend
-        function onScanFinished(error_paths) {
+        target: backend.library
+        function onSongsChanged() {
+            statusBar.songCount = backend.library.songModel.rowCount();
+        }
+        function onCurrentPlaylistSongsChanged() {
             statusBar.songCount = backend.library.songModel.rowCount();
         }
     }
@@ -40,20 +46,21 @@ Rectangle {
         onRepeatModeChanged: {
             // Update repeat button and menu selection
             switch (repeatMode) {
-                case repeatAll:
-                    repeatButton.checked = true;
-                    repeatAllOption.checked = true;
-                    break;
-                case repeatTrack:
-                    repeatButton.checked = true;
-                    repeatTrackOption.checked = true;
-                    break;
-                case repeatOneSong:
-                    repeatButton.checked = true;
-                    oneSongOption.checked = true;
-                    break;
-                default: // repeatOff
-                    repeatButton.checked = false;
+            case repeatAll:
+                repeatButton.checked = true;
+                repeatAllOption.checked = true;
+                break;
+            case repeatTrack:
+                repeatButton.checked = true;
+                repeatTrackOption.checked = true;
+                break;
+            case repeatOneSong:
+                repeatButton.checked = true;
+                oneSongOption.checked = true;
+                break;
+            default:
+                // repeatOff
+                repeatButton.checked = false;
             }
         }
     }

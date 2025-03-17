@@ -33,7 +33,6 @@ class PlaylistSongRepository(DatabaseRepository):
         self._playlist_repository = playlists_repository
         self._songs_repository = songs_repository
 
-    # Todo: fix position logic, this will NOT work
     def insert(self, model: PlaylistSong) -> int | None:
         """Add a song to a playlist"""
         data = model.model_dump(exclude={"id"})  # Exclude auto-incrementing ID
@@ -44,8 +43,9 @@ class PlaylistSongRepository(DatabaseRepository):
                 "SELECT MAX(position) FROM playlist_songs WHERE playlist_id = ?"
             )
             row = self._execute_select_query(select_query, (playlist_id,), True)
+            row_model = self._row_to_model(row)  # type: ignore
             if row is not None:
-                data["position"] = 1 if row is None else row["position"] + 1
+                data["position"] = 1 if row is None else row_model.position + 1
 
         fields = ", ".join(data.keys())
         placeholders = ", ".join("?" * len(data))
@@ -57,9 +57,9 @@ class PlaylistSongRepository(DatabaseRepository):
     def get_playlist_songs(self, playlist_id: int) -> list[Song]:
         """Get all songs in a playlist"""
         playlist_info = self._playlist_repository.find_by_id(playlist_id)
-        data = playlist_info.model_dump()
 
         if playlist_info is not None:
+            data = playlist_info.model_dump()
             if data["is_dynamic"] and data["query"]:
                 # For dynamic playlists, execute the saved query
                 return self._songs_repository.search_songs(data["query"])
@@ -71,7 +71,7 @@ class PlaylistSongRepository(DatabaseRepository):
                 WHERE ps.playlist_id = ?
                 ORDER BY ps.position
                 """
-                rows = self._execute_select_query(select_query, (id,))
+                rows = self._execute_select_query(select_query, (playlist_id,))
                 return [self._row_to_model(row) for row in rows] if rows else []  # type: ignore
         return []
 

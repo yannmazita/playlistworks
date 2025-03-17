@@ -1,5 +1,6 @@
 # src.features.library.models
 import logging
+from typing import Any
 from PySide6.QtCore import (
     QAbstractListModel,
     QAbstractTableModel,
@@ -61,7 +62,7 @@ class SongModel(QAbstractTableModel):
         self,
         index: QModelIndex | QPersistentModelIndex,
         role=Qt.DisplayRole,  # type: ignore
-    ) -> str | None:
+    ) -> Any | None:
         if not index.isValid():
             logger.warning("Invalid index in data method")
             return None
@@ -139,7 +140,7 @@ class PlaylistModel(QAbstractListModel):
         self,
         index: QModelIndex | QPersistentModelIndex,
         role=Qt.DisplayRole,  # type: ignore
-    ) -> str | None:
+    ) -> Any:
         if not index.isValid() or index.row() >= len(self._playlists):
             return None
 
@@ -148,9 +149,9 @@ class PlaylistModel(QAbstractListModel):
         if role == self.NameRole:
             return playlist.name
         elif role == self.IdRole:
-            return str(playlist.id)
+            return playlist.id
         elif role == self.IsDynamicRole:
-            return str(playlist.is_dynamic)
+            return playlist.is_dynamic
         elif role == self.QueryRole:
             return playlist.query
 

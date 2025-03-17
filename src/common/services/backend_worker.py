@@ -122,5 +122,4 @@ class BackendWorker(QObject):
             logger.exception(e, stack_info=True)
             return
         finally:
-            self.library.loadAllSongs()
             self.is_running = False

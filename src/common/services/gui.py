@@ -60,13 +60,14 @@ class GuiServices:
                 the path of a file that failed to scan and
                 the corresponding exception.
         """
-        logger.info("Library scan finished, refreshing song table model")
         for path, error in error_paths:
             logger.error(f"Failed to scan: {path} - {error}")
+        self.backend.get_library().loadAllSongs()
 
     def _on_scan_error(self):
         """Handles the scanError signal from the backend."""
-        logger.info("Library scan suspended, refreshing song table model")
+        logger.info("Library scan suspended, refreshing database")
+        self.backend.get_library().loadAllSongs()
 
     def run(self):
         """Loads the QML file, starts the event loop, and handles exit."""
