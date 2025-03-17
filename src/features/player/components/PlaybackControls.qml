@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtMultimedia
 
 Column {
+    id: playbackControlsRoot
     anchors.fill: parent
     property int playbackValue: 1
 

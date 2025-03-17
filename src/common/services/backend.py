@@ -14,6 +14,7 @@ from src.features.playlists.repository import (
     PlaylistSongRepository,
     PlaylistsRepository,
 )
+from src.features.playlists.services.playlists import PlaylistService
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,10 @@ class BackendServices(QObject):
     Attributes:
         library_path: The path to the music library.
         songs_repository: Repository for song database operations.
+        playlists_repository: Repository for playlist database operations.
+        playlist_song_repository: Repository for playlist_song database operations.
         library_services: Service for song-related logic.
-        song_model: Model for the GUI song table.
+        playlist_service: Service for playlist-related logic.
         playback_service: Service for audio playback.
         worker_thread: The worker thread for long-running operations.
         worker: The worker object that runs in the worker thread.
@@ -69,6 +72,7 @@ class BackendServices(QObject):
         )
         self._library_services: LibraryServices | None = None
         self._playback_service: PlaybackService = PlaybackService(self._library)
+        self._playlist_service: PlaylistService = PlaylistService(self._library)
 
         # Setup worker thread
         self._worker_thread = QThread()
@@ -140,3 +144,8 @@ class BackendServices(QObject):
         return self._playback_service
 
     playback = Property(QObject, fget=get_playback, fset=None, constant=True)  # type: ignore
+
+    def get_playlists(self):
+        return self._playlist_service
+
+    playlist = Property(QObject, fget=get_playlists, fset=None, constant=True)  # type: ignore

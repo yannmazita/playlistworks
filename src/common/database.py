@@ -64,8 +64,7 @@ def initialize_database(conn: sqlite3.Connection):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 playlist_id INTEGER,
                 song_id INTEGER,
-                query TEXT,
-                is_dynamic BOOLEAN NOT NULL,
+                position INTEGER,
                 FOREIGN KEY (playlist_id) REFERENCES playlists(id),
                 FOREIGN KEY (song_id) REFERENCES songs(id)
             )

@@ -3,12 +3,13 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 TableView {
-    id: songTable
+    id: songTableRoot
     Layout.fillWidth: true
     Layout.fillHeight: true
     clip: true
 
     property bool inPlaylistMode: false
+    property int currentPlaylistId: -1
 
     function getSourceModel() {
         return inPlaylistMode ? backend.library.currentPlaylistSongs : backend.library.songModel;
@@ -18,7 +19,7 @@ TableView {
 
     delegate: Rectangle {
         required property int row
-        implicitWidth: Math.max(100, songTable.width / 3)
+        implicitWidth: Math.max(100, songTableRoot.width / 3)
         implicitHeight: 40
         color: backend.library.songModel.selectedSongIndex === row ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
         border.color: "#e0e0e0"

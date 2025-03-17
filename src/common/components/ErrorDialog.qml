@@ -2,13 +2,13 @@ import QtQuick
 import QtQuick.Controls
 
 Dialog {
-    id: errorDialog
+    id: errorDialogRoot
     title: "Error"
     modal: true
     property string text: ""
 
     Label {
-        text: errorDialog.text
+        text: errorDialogRoot.text
     }
 
     standardButtons: Dialog.Ok

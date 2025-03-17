@@ -112,8 +112,7 @@ def test_initialize_database(db_connection):
     assert "id" in columns
     assert "playlist_id" in columns
     assert "song_id" in columns
-    assert "query" in columns
-    assert "is_dynamic" in columns
+    assert "position" in columns
 
     # Check indexes
     cursor = db_connection.execute("SELECT name FROM sqlite_master WHERE type='index'")

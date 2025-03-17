@@ -113,7 +113,6 @@ class SongModel(QAbstractTableModel):
             Qt.UserRole + 4: b"path",  # type: ignore
             Qt.UserRole + 5: b"songId",  # type: ignore
         }
-        logger.debug(f"Role names: {roles}")
         return roles
 
     def setSongs(self, songs: list[Song]):

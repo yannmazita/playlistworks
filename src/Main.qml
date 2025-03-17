@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "common/components"
 import "features/player/components"
+import "features/playlists/components"
 import "features/library/components"
 
 ApplicationWindow {
@@ -54,21 +55,35 @@ ApplicationWindow {
     }
 
     header: ToolBar {
-        PlaybackControls {}
+        PlaybackControls {
+            id: playbackControls
+        }
     }
 
-    ColumnLayout {
-        id: mainColumn
+    SplitView {
         anchors.fill: parent
-        Layout.fillWidth: true
 
-        SearchBar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 80
+        PlaylistSidebar {
+            id: playlistSidebar
+            SplitView.preferredWidth: 300
+            SplitView.minimumWidth: 200
         }
 
-        SongTableView {
-            id: songTable
+        ColumnLayout {
+            id: mainColumn
+            SplitView.fillWidth: true
+
+            SearchBar {
+                id: searchBar
+                Layout.fillWidth: true
+                Layout.preferredHeight: 80
+            }
+
+            SongTableView {
+                id: songTableView
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
         }
     }
 

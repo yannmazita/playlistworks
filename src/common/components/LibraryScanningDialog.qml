@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 
 Dialog {
-    id: libraryScanningDialog
+    id: libraryScanningDialogRoot
     title: "Scanning Library"
     modal: true
     closePolicy: Dialog.NoAutoClose

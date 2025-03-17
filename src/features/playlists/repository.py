@@ -57,11 +57,12 @@ class PlaylistSongRepository(DatabaseRepository):
     def get_playlist_songs(self, playlist_id: int) -> list[Song]:
         """Get all songs in a playlist"""
         playlist_info = self._playlist_repository.find_by_id(playlist_id)
+        data = playlist_info.model_dump()
 
         if playlist_info is not None:
-            if playlist_info["is_dynamic"] and playlist_info["query"]:
+            if data["is_dynamic"] and data["query"]:
                 # For dynamic playlists, execute the saved query
-                return self._songs_repository.search_songs(playlist_info["query"])
+                return self._songs_repository.search_songs(data["query"])
             else:
                 # For static playlists, get songs from playlist_songs
                 select_query = """

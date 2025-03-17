@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Dialog {
-    id: helpDialog
+    id: helpDialogRoot
     title: "Help - Query Syntax"
     modal: true
     anchors.centerIn: parent
@@ -16,7 +16,7 @@ Dialog {
         clip: true
 
         ColumnLayout {
-            width: helpDialog.width - 40
+            width: helpDialogRoot.width - 40
             spacing: 10
 
             Text {
