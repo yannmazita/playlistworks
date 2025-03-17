@@ -4,7 +4,7 @@ Work in progress! Very early stage and actively developed.
 
 `playlistworks` is a playlist-driven music player built with Python and [QT/QML](https://doc.qt.io/qt-6/qmlreference.html).
 
-![playlistworks_capture](https://github.com/user-attachments/assets/23b35b53-2c08-413c-bd72-637e1cd6839e)
+![playlistworks_capture](https://github.com/user-attachments/assets/d1522d8d-7142-42f3-96bf-d0e936794f72)
 
 ## Getting Started
 
