@@ -1,10 +1,13 @@
 # src.features.library.repository
+import logging
 import sqlite3
 from datetime import datetime
 
 from src.common.repository import DatabaseRepository
 from src.features.library.schemas import Song
 from src.features.library.services.query import QueryLexer, QueryParser, SQLGenerator
+
+logger = logging.getLogger(__name__)
 
 
 class SongsRepository(DatabaseRepository):
@@ -37,8 +40,8 @@ class SongsRepository(DatabaseRepository):
             sql = f"SELECT * FROM songs WHERE {where_clause}"
             rows = self._execute_select_query(sql, tuple(params))
             return [self._row_to_model(row) for row in rows] if rows else []  # type: ignore
-        except Exception as e:
-            print(f"Query parsing error: {e}")
+        except sqlite3.Error:
+            logger.exception("Query parsing error", stack_info=True)
             # On error, return all songs (or could return empty list)
             return self.find_many()
 

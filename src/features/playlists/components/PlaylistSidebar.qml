@@ -6,17 +6,6 @@ Rectangle {
     id: sidebarRoot
     color: "#f0f0f0"
 
-    function showLibrary() {
-        songTableView.inPlaylistMode = false;
-        songTableView.currentPlaylistId = -1;
-    }
-
-    function showPlaylist(playlistId) {
-        songTableView.inPlaylistMode = true;
-        songTableView.currentPlaylistId = playlistId;
-        backend.playlist.setCurrentPlaylist(playlistId);
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 10
@@ -32,7 +21,8 @@ Rectangle {
             Layout.fillWidth: true
             text: "All Songs"
             onClicked: {
-                showLibrary();
+                playlistListView.currentIndex = -1;
+                backend.library.playlistMode = false;
             }
         }
 
@@ -64,8 +54,9 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
+                        backend.library.playlistMode = true;
                         playlistListView.currentIndex = index;
-                        showPlaylist(playlistId);
+                        backend.library.setCurrentPlaylist(playlistId);
                     }
                 }
 

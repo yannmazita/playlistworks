@@ -8,11 +8,8 @@ TableView {
     Layout.fillHeight: true
     clip: true
 
-    property bool inPlaylistMode: false
-    property int currentPlaylistId: -1
-
     function getSourceModel() {
-        return inPlaylistMode ? backend.library.currentPlaylistSongs : backend.library.songModel;
+        return backend.library.currentSongModel
     }
 
     model: getSourceModel()
@@ -39,7 +36,7 @@ TableView {
             }
             onDoubleClicked: {
                 backend.playback.handleRowClick(row);
-                let songPath = backend.library.songModel.data(backend.library.songModel.index(row, 0), Qt.UserRole + 4);
+                let songPath = getSourceModel().data(getSourceModel().index(row, 0), Qt.UserRole + 4);
                 backend.playback.toggle_playback(songPath);
             }
         }

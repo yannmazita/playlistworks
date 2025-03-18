@@ -4,6 +4,7 @@ import logging
 from src.features.library.repository import SongsRepository
 from src.features.library.schemas import Song, Playlist, PlaylistSong
 from src.common.repository import DatabaseRepository
+from src.features.library.services.query import QueryLexer, QueryParser, SQLGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -114,3 +115,41 @@ class PlaylistSongRepository(DatabaseRepository):
         except sqlite3.Error:
             logger.exception("Error updating position", stack_info=True)
             return False
+
+    def search_songs(self, query: str, playlist_id: int) -> list[Song]:
+        """
+        Search for songs within a specific playlist based on a query.
+        """
+        playlist_songs = self.get_playlist_songs(playlist_id)
+
+        if not query or query.strip() == "":
+            return playlist_songs
+
+        try:
+            # Parse the query into an expression tree
+            lexer = QueryLexer(query)
+            parser = QueryParser(lexer)
+            expression = parser.parse()
+
+            # Generate SQL from the expression tree
+            sql_generator = SQLGenerator()
+            where_clause, params = sql_generator.generate(expression)
+
+            # Create a temporary table to hold playlist songs
+            temp_table_query = """
+            CREATE TEMP TABLE temp_playlist_songs AS
+            SELECT s.* FROM songs s
+            JOIN playlist_songs ps ON s.id = ps.song_id
+            WHERE ps.playlist_id = ?
+            """
+            self._execute_query(temp_table_query, (playlist_id,))
+
+            # Execute the search query within the playlist songs
+            sql = f"SELECT * FROM temp_playlist_songs WHERE {where_clause}"
+            rows = self._execute_select_query(sql, tuple(params))
+
+            return [self._row_to_model(row) for row in rows] if rows else []  # type: ignore
+        except sqlite3.Error:
+            logger.exception("Query parsing error", stack_info=True)
+            # On error, return all playlist songs (or could return empty list
+            return playlist_songs

@@ -6,8 +6,6 @@ Rectangle {
     id: searchBarRoot
     color: "#f0f0f0"
 
-    property bool inPlaylistMode: false
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 10
@@ -23,7 +21,8 @@ Rectangle {
                 font.pixelSize: 16
 
                 onTextChanged: {
-                    backend.library.searchSongs(text);
+                    backend.library.playlistMode = false;
+                    backend.library.searchSongs(text, -1);
                 }
             }
 
