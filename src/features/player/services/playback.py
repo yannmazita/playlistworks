@@ -6,7 +6,7 @@ import random
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst, GLib  # type: ignore
-from PySide6.QtCore import Qt, QObject, Signal, Slot, Property
+from PySide6.QtCore import QItemSelectionModel, QObject, Signal, Slot, Property
 
 from src.features.library.models import MusicLibrary
 
@@ -99,6 +99,8 @@ class PlaybackService(QObject):
         # Connect to library signals
         self._library.songsChanged.connect(self._on_songs_changed)
         self._library.currentPlaylistSongsChanged.connect(self._on_songs_changed)
+        # NEW: Connect to selection model changes
+        self._library.songSelectionModelChanged.connect(self._on_selection_changed)
 
     def get_current_song_path(self):
         return self._current_song_path
@@ -232,17 +234,21 @@ class PlaybackService(QObject):
                 logger.info("Restarting current track (repeat track mode)")
             elif self._repeat_mode == self.REPEAT_ALL:
                 # Play the next song, or go back to the first if at the end
-                current_index = self._library.get_song_model().get_selected_song_index()
+                current_index = (
+                    self._library.get_current_selection_model().currentIndex()
+                )
                 next_index = self._get_next_index(current_index)
 
                 if next_index is not None:
-                    self._library.get_song_model().set_selected_song_index(next_index)
-                    song_path = self._library.get_song_model().data(
-                        self._library.get_song_model().index(next_index, 0),
-                        Qt.UserRole + 4,  # type: ignore
+                    self._library.get_current_selection_model().setCurrentIndex(
+                        next_index,
+                        QItemSelectionModel.NoUpdate,  # type: ignore
                     )
+                    song_path = self._library.getCurrentSongPath()
                     self.play(song_path)
-                    logger.info(f"Playing next song (repeat all mode): {next_index}")
+                    logger.info(
+                        f"Playing next song (repeat all mode): {next_index.row()}"
+                    )
                 else:
                     # Should not happen with repeat all, but just in case
                     self.player.set_state(Gst.State.NULL)
@@ -250,17 +256,21 @@ class PlaybackService(QObject):
                     logger.info("End of playlist reached with no next song")
             elif self._repeat_mode == self.REPEAT_OFF:
                 # In REPEAT_OFF mode, continue to next song but don't loop at end
-                current_index = self._library.get_song_model().get_selected_song_index()
+                current_index = (
+                    self._library.get_current_selection_model().currentIndex()
+                )
                 next_index = self._get_next_index(current_index)
 
                 if next_index is not None:
-                    self._library.get_song_model().set_selected_song_index(next_index)
-                    song_path = self._library.get_song_model().data(
-                        self._library.get_song_model().index(next_index, 0),
-                        Qt.UserRole + 4,  # type: ignore
+                    self._library.get_current_selection_model().setCurrentIndex(
+                        next_index,
+                        QItemSelectionModel.NoUpdate,  # type: ignore
                     )
+                    song_path = self._library.getCurrentSongPath()
                     self.play(song_path)
-                    logger.info(f"Playing next song (repeat off mode): {next_index}")
+                    logger.info(
+                        f"Playing next song (repeat off mode): {next_index.row()}"
+                    )
                 else:
                     # End of playlist reached, stop playback
                     self.player.set_state(Gst.State.NULL)
@@ -311,9 +321,15 @@ class PlaybackService(QObject):
         if self._shuffle_mode:
             self._generate_shuffled_indices()
 
+    @Slot()
+    def _on_selection_changed(self):
+        """Handle changes in the selection model."""
+        if self._shuffle_mode:
+            self._generate_shuffled_indices()
+
     def _generate_shuffled_indices(self):
         """Generate a shuffled list of indices for the current playlist"""
-        count = self._library.get_song_model().rowCount()
+        count = self._library.get_current_song_model().rowCount()
         if count == 0:
             self._shuffled_indices = []
             return
@@ -323,16 +339,16 @@ class PlaybackService(QObject):
         random.shuffle(indices)
 
         # If a song is currently playing, move its index to the beginning
-        current_index = self._library.get_song_model().get_selected_song_index()
-        if current_index != -1 and current_index in indices:
-            indices.remove(current_index)
-            indices.insert(0, current_index)
+        current_index = self._library.get_current_selection_model().currentIndex()
+        if current_index.isValid() and current_index.row() in indices:
+            indices.remove(current_index.row())
+            indices.insert(0, current_index.row())
 
         self._shuffled_indices = indices
 
     def _get_next_index(self, current_index):
         """Get the next song index based on current settings"""
-        count = self._library.get_song_model().rowCount()
+        count = self._library.get_current_song_model().rowCount()
         if count == 0:
             return None
 
@@ -344,32 +360,40 @@ class PlaybackService(QObject):
                 self._generate_shuffled_indices()
 
             try:
-                current_pos = self._shuffled_indices.index(current_index)
+                current_pos = self._shuffled_indices.index(current_index.row())
                 if current_pos + 1 < len(self._shuffled_indices):
-                    return self._shuffled_indices[current_pos + 1]
+                    return self._library.get_current_song_model().index(
+                        self._shuffled_indices[current_pos + 1], 0
+                    )
                 elif self._repeat_mode == self.REPEAT_ALL:
-                    return self._shuffled_indices[0]  # Wrap around
+                    return self._library.get_current_song_model().index(
+                        self._shuffled_indices[0], 0
+                    )  # Wrap around
                 else:
                     return None  # End of shuffled list
             except ValueError:
                 # Current index not in shuffled list, regenerate
                 self._generate_shuffled_indices()
                 if self._shuffled_indices:
-                    return self._shuffled_indices[0]
+                    return self._library.get_current_song_model().index(
+                        self._shuffled_indices[0], 0
+                    )
                 return None
         else:
             # Sequential playback
-            next_index = current_index + 1
-            if next_index < count:
-                return next_index
+            next_row = current_index.row() + 1
+            if next_row < count:
+                return self._library.get_current_song_model().index(next_row, 0)
             elif self._repeat_mode == self.REPEAT_ALL:
-                return 0  # Wrap around to beginning
+                return self._library.get_current_song_model().index(
+                    0, 0
+                )  # Wrap around to beginning
             else:
                 return None  # End of playlist
 
     def _get_previous_index(self, current_index):
         """Get the previous song index based on current settings"""
-        count = self._library.get_song_model().rowCount()
+        count = self._library.get_current_song_model().rowCount()
         if count == 0:
             return None
 
@@ -381,26 +405,34 @@ class PlaybackService(QObject):
                 self._generate_shuffled_indices()
 
             try:
-                current_pos = self._shuffled_indices.index(current_index)
+                current_pos = self._shuffled_indices.index(current_index.row())
                 if current_pos > 0:
-                    return self._shuffled_indices[current_pos - 1]
+                    return self._library.get_current_song_model().index(
+                        self._shuffled_indices[current_pos - 1], 0
+                    )
                 elif self._repeat_mode == self.REPEAT_ALL:
-                    return self._shuffled_indices[-1]  # Wrap around to end
+                    return self._library.get_current_song_model().index(
+                        self._shuffled_indices[-1], 0
+                    )  # Wrap around to end
                 else:
                     return None  # Beginning of shuffled list
             except ValueError:
                 # Current index not in shuffled list, regenerate
                 self._generate_shuffled_indices()
                 if self._shuffled_indices:
-                    return self._shuffled_indices[0]
+                    return self._library.get_current_song_model().index(
+                        self._shuffled_indices[0], 0
+                    )
                 return None
         else:
             # Sequential playback
-            prev_index = current_index - 1
-            if prev_index >= 0:
-                return prev_index
+            prev_row = current_index.row() - 1
+            if prev_row >= 0:
+                return self._library.get_current_song_model().index(prev_row, 0)
             elif self._repeat_mode == self.REPEAT_ALL:
-                return count - 1  # Wrap around to end
+                return self._library.get_current_song_model().index(
+                    count - 1, 0
+                )  # Wrap around to end
             else:
                 return None  # Beginning of playlist
 
@@ -436,7 +468,11 @@ class PlaybackService(QObject):
             self.player.set_state(Gst.State.PLAYING)
             logger.info("Resuming playback")
         else:
-            logger.info("No song to play")
+            song_path = self._library.getCurrentSongPath()
+            if song_path:
+                self.play(song_path)
+            else:
+                logger.info("No song to play")
 
     @Slot()
     def pause(self):
@@ -472,7 +508,8 @@ class PlaybackService(QObject):
         else:
             if current_state == Gst.State.PLAYING:
                 self.pause()
-            elif self._current_song_path:
+            # MODIFIED: Use selection model
+            elif self._library.getCurrentSongPath():
                 self.play()
 
     @Slot(int)  # type: ignore
@@ -495,7 +532,8 @@ class PlaybackService(QObject):
     @Slot()  # type: ignore
     def skip_forward(self):
         """Skip to next song based on current playback modes"""
-        current_index = self._library.get_song_model().get_selected_song_index()
+        # MODIFIED: Use selection model
+        current_index = self._library.get_current_selection_model().currentIndex()
 
         # If we're in REPEAT_ONE_SONG mode and already playing, do nothing
         if (
@@ -514,42 +552,44 @@ class PlaybackService(QObject):
             logger.info("Restarting current track (repeat track mode)")
             return
 
-        if current_index == -1:
+        if not current_index.isValid():
             # No song selected, select first song
-            if self._library.get_song_model().rowCount() > 0:
+            if self._library.get_current_song_model().rowCount() > 0:
                 # In shuffle mode, use first shuffled index
                 if self._shuffle_mode:
                     if not self._shuffled_indices:
                         self._generate_shuffled_indices()
                     if self._shuffled_indices:
-                        index_to_play = self._shuffled_indices[0]
-                        self._library.get_song_model().set_selected_song_index(
-                            index_to_play
+                        index_to_play = self._library.get_current_song_model().index(
+                            self._shuffled_indices[0], 0
                         )
-                        song_path = self._library.get_song_model().data(
-                            self._library.get_song_model().index(index_to_play, 0),
-                            Qt.UserRole + 4,  # type: ignore
+                        # MODIFIED: Use selection model
+                        self._library.get_current_selection_model().setCurrentIndex(
+                            index_to_play,
+                            QItemSelectionModel.NoUpdate,  # type: ignore
                         )
+                        song_path = self._library.getCurrentSongPath()
                         self.play(song_path)
                     return
 
                 # Normal sequential mode
-                self._library.get_song_model().set_selected_song_index(0)
-                song_path = self._library.get_song_model().data(
-                    self._library.get_song_model().index(0, 0),
-                    Qt.UserRole + 4,  # type: ignore
+                index_to_play = self._library.get_current_song_model().index(0, 0)
+                self._library.get_current_selection_model().setCurrentIndex(
+                    index_to_play,
+                    QItemSelectionModel.NoUpdate,  # type: ignore
                 )
+                song_path = self._library.getCurrentSongPath()
                 self.play(song_path)
         else:
             # Go to next song based on current mode
             next_index = self._get_next_index(current_index)
 
             if next_index is not None:
-                self._library.get_song_model().set_selected_song_index(next_index)
-                song_path = self._library.get_song_model().data(
-                    self._library.get_song_model().index(next_index, 0),
-                    Qt.UserRole + 4,  # type: ignore
+                self._library.get_current_selection_model().setCurrentIndex(
+                    next_index,
+                    QItemSelectionModel.NoUpdate,  # type: ignore
                 )
+                song_path = self._library.getCurrentSongPath()
                 self.play(song_path)
             else:
                 logger.info("End of playlist reached")
@@ -557,7 +597,8 @@ class PlaybackService(QObject):
     @Slot()  # type: ignore
     def skip_backward(self):
         """Skip to previous song or restart current song based on current playback modes"""
-        current_index = self._library.get_song_model().get_selected_song_index()
+        # MODIFIED: Use selection model
+        current_index = self._library.get_current_selection_model().currentIndex()
 
         # If we're in REPEAT_ONE_SONG mode, do nothing
         if self._repeat_mode == self.REPEAT_ONE_SONG:
@@ -578,11 +619,11 @@ class PlaybackService(QObject):
         prev_index = self._get_previous_index(current_index)
 
         if prev_index is not None:
-            self._library.get_song_model().set_selected_song_index(prev_index)
-            song_path = self._library.get_song_model().data(
-                self._library.get_song_model().index(prev_index, 0),
-                Qt.UserRole + 4,  # type: ignore
+            self._library.get_current_selection_model().setCurrentIndex(
+                prev_index,
+                QItemSelectionModel.NoUpdate,  # type: ignore
             )
+            song_path = self._library.getCurrentSongPath()
             self.play(song_path)
         else:
             logger.info("Beginning of playlist reached")
@@ -598,14 +639,3 @@ class PlaybackService(QObject):
         """Cycle through repeat modes: Off -> All -> Track -> One Song -> Off"""
         next_mode = (self._repeat_mode + 1) % 4  # Cycle through 0-3
         self.set_repeat_mode(next_mode)
-
-    @Slot(int)  # type: ignore
-    def handleRowClick(self, row: int):
-        """Handle when a row is clicked
-
-        Args:
-            row: The row index that was clicked.
-        """
-        if 0 <= row < self._library.get_song_model().rowCount():
-            self._library.get_song_model().set_selected_song_index(row)
-            logging.debug(f"Row {row} clicked")

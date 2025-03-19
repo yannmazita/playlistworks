@@ -1,10 +1,31 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 
 Rectangle {
-    id: sidebarRoot
+    id: playlistSidebarRoot
     color: "#f0f0f0"
+
+    property int selectedPlaylistRow: -1
+
+    Connections {
+        target: backend.library.playlistSelectionModel
+        function onCurrentChanged() {
+            let currentIndex = backend.library.playlistSelectionModel.currentIndex;
+            if (currentIndex.valid) {
+                playlistSidebarRoot.selectedPlaylistRow = currentIndex.row;
+            } else {
+                playlistSidebarRoot.selectedPlaylistRow = -1;
+            }
+        }
+
+        function onSelectionChanged() {
+            let indexes = backend.library.playlistSelectionModel.selectedIndexes;
+            if (indexes.length > 0) {
+                playlistSidebarRoot.selectedPlaylistRow = indexes[0].row;
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -21,8 +42,9 @@ Rectangle {
             Layout.fillWidth: true
             text: "All Songs"
             onClicked: {
-                playlistListView.currentIndex = -1;
                 backend.library.playlistMode = false;
+                backend.library.playlistSelectionModel.clearSelection();
+                playlistSidebarRoot.selectedPlaylistRow = -1;
             }
         }
 
@@ -38,25 +60,43 @@ Rectangle {
             font.pixelSize: 18
         }
 
-        ListView {
-            id: playlistListView
+        TableView {
+            id: playlistTableView
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            columnSpacing: 0
+            rowSpacing: 0
+            width: parent.width
+
+            columnWidthProvider: function (column) {
+                return playlistTableView.width;
+            }
 
             model: backend.library.playlistModel
+            selectionModel: backend.library.playlistSelectionModel
 
             delegate: Rectangle {
-                width: playlistListView.width
+                required property int row
+                required property string name
+                required property int playlistId
+                required property bool isDynamic
+                required property string query
+                implicitWidth: playlistTableView.width
                 height: 50
-                color: "transparent"
+
+                color: row === playlistSidebarRoot.selectedPlaylistRow ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
+                border.color: "#e0e0e0"
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
                         backend.library.playlistMode = true;
-                        playlistListView.currentIndex = index;
+                        let modelIndex = backend.library.playlistModel.index(row, 0);
+                        backend.library.playlistSelectionModel.setCurrentIndex(modelIndex, ItemSelectionModel.ClearAndSelect | ItemSelectionModel.Current);
                         backend.library.setCurrentPlaylist(playlistId);
+
+                        playlistSidebarRoot.selectedPlaylistRow = row;
                     }
                 }
 
@@ -72,13 +112,13 @@ Rectangle {
                     }
 
                     Label {
-                        text: isDynamic ? "🔄" : ""
+                        text: isDynamic ? "✿" : ""
                         font.pixelSize: 16
                         ToolTip.text: isDynamic ? "Dynamic playlist: " + query : ""
-                        ToolTip.visible: isDynamic && ma.containsMouse
+                        ToolTip.visible: isDynamic && playlistLabelMouseArea.containsMouse
 
                         MouseArea {
-                            id: ma
+                            id: playlistLabelMouseArea
                             anchors.fill: parent
                             hoverEnabled: true
                         }
@@ -86,8 +126,6 @@ Rectangle {
 
                     Button {
                         text: "×"
-                        width: 30
-                        height: 30
 
                         onClicked: {
                             deleteConfirmDialog.playlistToDelete = playlistId;
@@ -97,13 +135,6 @@ Rectangle {
                     }
                 }
             }
-
-            highlight: Rectangle {
-                color: "#d0d0ff"
-                opacity: 0.5
-            }
-
-            highlightFollowsCurrentItem: true
         }
     }
 

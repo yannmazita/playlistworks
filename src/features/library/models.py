@@ -2,8 +2,8 @@
 import logging
 from typing import Any
 from PySide6.QtCore import (
-    QAbstractListModel,
     QAbstractTableModel,
+    QItemSelectionModel,
     QModelIndex,
     QObject,
     QPersistentModelIndex,
@@ -24,29 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 class SongModel(QAbstractTableModel):
-    selectedSongIndexChanged = Signal(int)
-
     def __init__(self, repository: SongsRepository):
         super().__init__()
         self._repository = repository
         self._songs: list[Song] = []
-        self._selected_song_index = -1
-
-    def get_selected_song_index(self):
-        return self._selected_song_index
-
-    @Slot(int)  # type: ignore
-    def set_selected_song_index(self, index: int):
-        if self._selected_song_index != index:
-            self._selected_song_index = index
-            self.selectedSongIndexChanged.emit(self._selected_song_index)
-
-    selectedSongIndex = Property(
-        int,
-        fget=get_selected_song_index,  # type: ignore
-        fset=set_selected_song_index,
-        notify=selectedSongIndexChanged,
-    )
 
     def rowCount(
         self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
@@ -122,7 +103,7 @@ class SongModel(QAbstractTableModel):
         self.endResetModel()
 
 
-class PlaylistModel(QAbstractListModel):
+class PlaylistModel(QAbstractTableModel):
     NameRole = Qt.UserRole + 1  # type: ignore
     IdRole = Qt.UserRole + 2  # type: ignore
     IsDynamicRole = Qt.UserRole + 3  # type: ignore
@@ -135,6 +116,11 @@ class PlaylistModel(QAbstractListModel):
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()):
         return len(self._playlists)
+
+    def columnCount(
+        self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
+    ) -> int:
+        return 1
 
     def data(
         self,
@@ -178,6 +164,9 @@ class MusicLibrary(QObject):
     songModelChanged = Signal()
     playlistModeChanged = Signal()
 
+    songSelectionModelChanged = Signal()
+    playlistSelectionModelChanged = Signal()
+
     def __init__(
         self,
         songs_repository: SongsRepository,
@@ -188,10 +177,20 @@ class MusicLibrary(QObject):
         self._song_repository = songs_repository
         self._playlists_repository = playlists_repository
         self._playlist_song_repository = playlist_song_repository
+
+        # Initialize models
         self._playlist_model = PlaylistModel(playlists_repository)
         self._song_model = SongModel(songs_repository)
         self._current_playlist_songs = SongModel(songs_repository)
         self._current_song_model = self._song_model
+
+        self._song_selection_model = QItemSelectionModel(self._song_model)
+        self._playlist_selection_model = QItemSelectionModel(self._playlist_model)
+        self._current_playlist_songs_selection_model = QItemSelectionModel(
+            self._current_playlist_songs
+        )
+        self._current_selection_model = self._song_selection_model
+
         self._playlist_mode = False
 
         self.loadAllSongs()
@@ -237,6 +236,42 @@ class MusicLibrary(QObject):
         notify=songModelChanged,
     )
 
+    def get_song_selection_model(self):
+        return self._song_selection_model
+
+    songSelectionModel = Property(
+        QObject,
+        fget=get_song_selection_model,  # type: ignore
+        notify=songSelectionModelChanged,
+    )
+
+    def get_playlist_selection_model(self):
+        return self._playlist_selection_model
+
+    playlistSelectionModel = Property(
+        QObject,  # type: ignore
+        fget=get_playlist_selection_model,  # type: ignore
+        notify=playlistSelectionModelChanged,
+    )
+
+    def get_current_playlist_songs_selection_model(self):
+        return self._current_playlist_songs_selection_model
+
+    currentPlaylistSongsSelectionModel = Property(
+        QObject,  # type: ignore
+        fget=get_current_playlist_songs_selection_model,  # type: ignore
+        notify=songSelectionModelChanged,
+    )
+
+    def get_current_selection_model(self):
+        return self._current_selection_model
+
+    currentSelectionModel = Property(
+        QObject,  # type: ignore
+        fget=get_current_selection_model,  # type: ignore
+        notify=songSelectionModelChanged,
+    )
+
     def get_playlist_mode(self):
         return self._playlist_mode
 
@@ -244,10 +279,14 @@ class MusicLibrary(QObject):
         self._playlist_mode = boolean
         if boolean:
             self._current_song_model = self._current_playlist_songs
+            self._current_selection_model = self._current_playlist_songs_selection_model
             self.songModelChanged.emit()
+            self.songSelectionModelChanged.emit()
         else:
             self._current_song_model = self._song_model
+            self._current_selection_model = self._song_selection_model
             self.songModelChanged.emit()
+            self.songSelectionModelChanged.emit()
 
     playlistMode = Property(
         bool,
@@ -329,3 +368,25 @@ class MusicLibrary(QObject):
     @Slot(int)  # type: ignore
     def incrementPlayCount(self, song_id: int):
         self._song_repository.update_song_playcount(song_id)
+
+    @Slot(QModelIndex)  # type: ignore
+    def clearSelection(self, index: QModelIndex):
+        self._current_selection_model.clearSelection()
+
+    @Slot(QModelIndex)  # type: ignore
+    def select(self, index: QModelIndex):
+        self._current_selection_model.select(index, QItemSelectionModel.Select)  # type: ignore
+
+    @Slot(QModelIndex)  # type: ignore
+    def setCurrentIndex(self, index: QModelIndex):
+        self._current_selection_model.setCurrentIndex(
+            index,
+            # QItemSelectionModel.NoUpdate,  # type: ignore
+            QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Current,  # type: ignore
+        )
+
+    def getCurrentSongPath(self):
+        index = self._current_selection_model.currentIndex()
+        if index.isValid():
+            return self._current_song_model.data(index, Qt.UserRole + 4)  # type: ignore
+        return None
