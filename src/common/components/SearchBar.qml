@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: searchBarRoot
     color: "#f0f0f0"
+    property int playlistId: -1
 
     ColumnLayout {
         anchors.fill: parent
@@ -17,12 +18,14 @@ Rectangle {
             TextField {
                 id: searchField
                 Layout.fillWidth: true
-                placeholderText: "Search library or create dynamic playlist..."
+                placeholderText: "Search library or playlist"
                 font.pixelSize: 16
 
                 onTextChanged: {
-                    backend.library.playlistMode = false;
-                    backend.library.searchSongs(text, -1);
+                    if (playlistId === -1) {
+                        backend.library.playlistMode = false;
+                    }
+                    backend.library.searchSongs(text, playlistId);
                 }
             }
 

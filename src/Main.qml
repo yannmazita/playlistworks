@@ -77,6 +77,13 @@ ApplicationWindow {
                 id: searchBar
                 Layout.fillWidth: true
                 Layout.preferredHeight: 80
+                playlistId: {
+                    let currentIndex = backend.library.playlistSelectionModel.currentIndex;
+                    if (currentIndex.valid) {
+                        return backend.library.playlistModel.data(currentIndex, Qt.UserRole + 2) || -1;
+                    }
+                    return -1;
+                }
             }
 
             SongTableView {

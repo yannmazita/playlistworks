@@ -42,6 +42,7 @@ Work in progress! Very early stage and actively developed.
     *   Tokenizer, lexer, parser, SQL generator: ✅
     *   Handling of any metadata field in JSON: ✅
     *   Search field, immediate response: ✅
+    *   Per-playlist queries: ✅
     *   Playlist creation, deletion: ✅
     *   Playlist update after creation: ❌
     *   Static playlist drag and drop, context menu: ❌
