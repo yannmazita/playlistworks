@@ -115,11 +115,11 @@ Dialog {
                 }
 
                 Text {
-                    text: "date"
+                    text: "release_time"
                     font.bold: true
                 }
                 Text {
-                    text: "Release date"
+                    text: "Release time"
                 }
 
                 Text {
@@ -242,14 +242,14 @@ Dialog {
 
                     Text {
                         Layout.fillWidth: true
-                        text: "artist:\"Depeche Mode\" and date:<1990"
+                        text: "artist:\"Depeche Mode\" and release_time:<1990"
                         font.family: "Courier"
                         wrapMode: Text.WordWrap
                     }
 
                     Text {
                         Layout.fillWidth: true
-                        text: "(genre:Hyperpop OR genre:\"Bubblegum Bass\") AND date:>2020"
+                        text: "(genre:Hyperpop OR genre:\"Bubblegum Bass\") AND release_time:>2020"
                         font.family: "Courier"
                         wrapMode: Text.WordWrap
                     }

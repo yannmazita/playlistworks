@@ -245,7 +245,7 @@ class SQLGenerator:
             "album": ("tags", "ALBUM", "text"),
             "genre": ("tags", "GENRE", "text"),
             "albumartist": ("tags", "ALBUM_ARTIST", "text"),
-            "date": ("tags", "DATE", "text"),  # Todo: Date might need special handling
+            # "date": ("tags", "RELEASE_TIME", "text"),
             # App data fields
             "play_count": ("app_data", "play_count", "numeric"),
             "rating": ("app_data", "rating", "numeric"),
@@ -288,7 +288,7 @@ class SQLGenerator:
             value = node["value"]
             operator = node["operator"]
 
-            # Get field mapping or use default
+            # Get field mapping or use default for other fields
             if field in self.field_mappings:
                 json_container, field_name, field_type = self.field_mappings[field]
 
@@ -306,18 +306,6 @@ class SQLGenerator:
                         # Default to LIKE for text fields
                         return f"{field_expr} LIKE ?", [f"%{value}%"]
                 elif field_type == "numeric":
-                    # Handle special numeric field values
-                    if field == "date" and value.endswith("s"):
-                        # Handle decade (e.g., 1980s)
-                        try:
-                            decade = int(value[:-1])
-                            return f"({field_expr} >= ? AND {field_expr} <= ?)", [
-                                decade,
-                                decade + 9,
-                            ]
-                        except ValueError:
-                            return "1=0", []  # Invalid decade format
-
                     try:
                         # Try to convert value to number for numeric comparisons
                         if "." in value:
