@@ -124,8 +124,19 @@ Rectangle {
                         }
                     }
 
-                    Button {
-                        text: "×"
+                    ToolButton {
+                        id: editPlaylistButton
+                        text: qsTr("Edit")
+
+                        onClicked: {
+                            playlistEditionDialog.setPlaylistDetails(playlistId, name, query, isDynamic);
+                            playlistEditionDialog.open();
+                        }
+                    }
+
+                    ToolButton {
+                        id: deletePlaylistButton
+                        text: qsTr("Delete")
 
                         onClicked: {
                             deleteConfirmDialog.playlistToDelete = playlistId;
@@ -140,5 +151,8 @@ Rectangle {
 
     PlaylistDeletionDialog {
         id: deleteConfirmDialog
+    }
+    PlaylistEditionDialog {
+        id: playlistEditionDialog
     }
 }

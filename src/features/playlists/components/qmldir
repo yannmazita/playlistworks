@@ -1,3 +1,4 @@
 module playlists.components
 PlaylistSidebar 1.0 PlaylistSidebar.qml
+PlaylistEditionDialog 1.0 PlaylistEditionDialog.qml
 PlaylistDeletionDialog 1.0 PlaylistDeletionDialog.qml

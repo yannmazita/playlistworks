@@ -5,6 +5,7 @@ Dialog {
     id: deleteConfirmDialogRoot
     title: "Delete Playlist"
     modal: true
+    parent: Overlay.overlay
     anchors.centerIn: parent
 
     property int playlistToDelete: -1
