@@ -1,4 +1,3 @@
-# StatusBar.qml
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -8,6 +7,8 @@ Rectangle {
     Layout.fillWidth: true
     color: "#f0f0f0"
     property int songCount: backend.library.songModel.rowCount()
+    property bool isScanning: false
+    property string scanningMessage: "Scanning library files..."
 
     // Repeat mode constants (mirroring PlaybackService)
     readonly property int repeatOff: 0
@@ -15,7 +16,6 @@ Rectangle {
     readonly property int repeatTrack: 2
     readonly property int repeatOneSong: 3
 
-    // Helper function to get the currently active repeat mode
     function getActiveRepeatMode() {
         if (repeatAllOption.checked)
             return repeatAll;
@@ -65,6 +65,21 @@ Rectangle {
         }
     }
 
+    Connections {
+        target: backend
+        function onScanStarted() {
+            statusBar.isScanning = true;
+        }
+        function onScanFinished() {
+            statusBar.isScanning = false;
+        }
+        function onScanError(errorMessage) {
+            statusBar.isScanning = false;
+            errorDialog.text = errorMessage;
+            errorDialog.open();
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
 
@@ -97,7 +112,7 @@ Rectangle {
                     id: repeatButton
                     text: qsTr("Repeat")
                     checkable: true
-                    checked: backend.playback.repeatMode != repeatOff // Checked if not OFF
+                    checked: backend.playback.repeatMode != repeatOff
                     Layout.preferredHeight: shuffleButton.height
 
                     background: Rectangle {
@@ -166,10 +181,34 @@ Rectangle {
             }
         }
 
+        Item {
+            Layout.fillWidth: true
+        }
+
         Text {
             id: statusBarText
             text: "Songs: " + statusBar.songCount
             Layout.alignment: Qt.AlignVCenter
+            Layout.rightMargin: 10
         }
+
+        // Scanning status indicator
+        RowLayout {
+            visible: statusBar.isScanning
+            spacing: 5
+            Layout.rightMargin: 10
+
+            BusyIndicator {
+                running: statusBar.isScanning
+                Layout.preferredHeight: 24
+                Layout.preferredWidth: 24
+            }
+
+            Text {
+                text: statusBar.scanningMessage
+                font.italic: true
+            }
+        }
+
     }
 }

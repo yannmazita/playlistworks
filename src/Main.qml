@@ -19,9 +19,6 @@ ApplicationWindow {
     LibraryDirectoryDialog {
         id: libraryDirectoryDialog
     }
-    LibraryScanningDialog {
-        id: libraryScanningDialog
-    }
     ErrorDialog {
         id: errorDialog
     }
@@ -36,7 +33,6 @@ ApplicationWindow {
             Action {
                 text: qsTr("Scan Library")
                 onTriggered: {
-                    libraryScanningDialog.open();
                     backend.scan_library();
                 }
             }
