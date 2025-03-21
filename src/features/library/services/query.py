@@ -203,11 +203,9 @@ class QueryParser:
             return node
 
         if token.type == Token.WORD:
-            # Check for field expression (word:value)
             word_token = self.eat(Token.WORD)
 
             if self.current_token.type == Token.COLON:
-                # This is a field expression
                 self.eat(Token.COLON)
 
                 operator = "="
@@ -215,18 +213,30 @@ class QueryParser:
                     operator = self.eat(Token.OPERATOR).value
 
                 if self.current_token.type == Token.WORD:
-                    value = self.eat(Token.WORD).value
-                else:
-                    value = ""
+                    value_token = self.eat(Token.WORD)
+                    value = value_token.value
+
+                    # Determine if the value is numeric
+                    is_numeric = value.isdigit() or (
+                        value.replace(".", "", 1).isdigit() and "." in value
+                    )
+
+                    return {
+                        "type": "FIELD",
+                        "field": word_token.value,
+                        "operator": operator,
+                        "value": value,
+                        "is_numeric": is_numeric,  # New field to indicate type
+                    }
 
                 return {
                     "type": "FIELD",
                     "field": word_token.value,
                     "operator": operator,
-                    "value": value,
+                    "value": "",
+                    "is_numeric": False,
                 }
 
-            # Simple word term
             return {"type": "TERM", "value": word_token.value}
 
         self.error(f"Unexpected token: {token}")
@@ -245,7 +255,6 @@ class SQLGenerator:
             "album": ("tags", "ALBUM", "text"),
             "genre": ("tags", "GENRE", "text"),
             "albumartist": ("tags", "ALBUM_ARTIST", "text"),
-            # "date": ("tags", "RELEASE_TIME", "text"),
             # App data fields
             "play_count": ("app_data", "play_count", "numeric"),
             "rating": ("app_data", "rating", "numeric"),
@@ -288,7 +297,6 @@ class SQLGenerator:
             value = node["value"]
             operator = node["operator"]
 
-            # Get field mapping or use default for other fields
             if field in self.field_mappings:
                 json_container, field_name, field_type = self.field_mappings[field]
 
