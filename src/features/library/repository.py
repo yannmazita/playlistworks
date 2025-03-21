@@ -38,10 +38,10 @@ class SongsRepository(DatabaseRepository):
 
             # Execute the query
             sql = f"SELECT * FROM songs WHERE {where_clause}"
-            # logger.debug(f"sql: {sql}")
-            # logger.debug(f"params: {params}")
+            logger.debug(f"sql: {sql}")
+            logger.debug(f"params: {params}")
             rows = self._execute_select_query(sql, tuple(params))
-            # logger.debug(f"rows empty: {rows == []}")
+            logger.debug(f"rows empty: {rows == []}")
             return [self._row_to_model(row) for row in rows] if rows else []  # type: ignore
         except sqlite3.Error:
             logger.exception("Query parsing error", stack_info=True)

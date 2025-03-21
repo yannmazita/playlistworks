@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtMultimedia
 
 Column {
     id: playbackControlsRoot
@@ -47,6 +46,18 @@ Column {
         function onDurationChanged(duration) {
             positionSlider.to = duration;
         }
+        
+        function onVolumeChanged(volume) {
+            // Update slider without triggering valueChanged
+            volumeSlider.blockUpdate = true;
+            volumeSlider.value = volume;
+            volumeSlider.blockUpdate = false;
+        }
+
+        function onMuteStateChanged(muted) {
+            // Update mute button text
+            muteButton.text = muted ? qsTr("Unmute") : qsTr("Mute");
+        }
     }
 
     RowLayout {
@@ -84,43 +95,90 @@ Column {
         }
     }
 
-    // Playback controls
-    Row {
-        spacing: 10
-        anchors.horizontalCenter: parent.horizontalCenter
-
-        Button {
-            id: skipBackButton
-            text: qsTr("Back")
-            onClicked: {
-                backend.playback.skip_backward();
+    // Container volume and playback controls
+    Item {
+        width: parent.width
+        height: Math.max(volumeControls.height, playbackControls.height)
+        
+        Row {
+            id: volumeControls
+            spacing: 5
+            anchors.left: parent.left
+            
+            Button {
+                id: muteButton
+                text: backend.playback.isMuted ? qsTr("Unmute") : qsTr("Mute")
+                width: 80
+                onClicked: {
+                    backend.playback.toggle_mute();
+                }
+            }
+            
+            Slider {
+                id: volumeSlider
+                from: 0.0
+                to: 1.0
+                value: backend.playback.volume
+                width: 120
+                
+                // Prevent feedback loop when updating from volume signals
+                property bool blockUpdate: false
+                
+                onMoved: {
+                    if (!blockUpdate) {
+                        backend.playback.volume = value;
+                        // If muted, unmute when user adjusts volume
+                        if (backend.playback.isMuted && value > 0) {
+                            backend.playback.isMuted = false;
+                        }
+                    }
+                }
+            }
+            
+            Text {
+                text: Math.round(volumeSlider.value * 100) + "%"
+                font.pixelSize: 12
+                width: 40
+                verticalAlignment: Text.AlignVCenter
+                height: volumeSlider.height
             }
         }
 
-        Button {
-            id: playButton
-            onClicked: {
-              // If a song is already playing or paused, control that song
-              if (backend.playback.currentTrackPath) {
-                  // Just toggle the current song's state without specifying a path
-                  backend.playback.toggle_playback("");
-              }
-              // Otherwise start playing the selected song
-              else if (backend.library.songModel.selectedSongIndex !== -1) {
-                  let songPath = backend.library.songModel.data(
-                      backend.library.songModel.index(backend.library.songModel.selectedSongIndex, 0), 
-                      Qt.UserRole + 4
-                  );
-                  backend.playback.toggle_playback(songPath);
-              }
-          }
-        }
+        Row {
+            id: playbackControls
+            spacing: 10
+            anchors.horizontalCenter: parent.horizontalCenter
 
-        Button {
-            id: skipForwardButton
-            text: qsTr("Forward")
-            onClicked: {
-                backend.playback.skip_forward();
+            Button {
+                id: skipBackButton
+                text: qsTr("Back")
+                onClicked: {
+                    backend.playback.skip_backward();
+                }
+            }
+
+            Button {
+                id: playButton
+                onClicked: {
+                    // If a song is already playing or paused, control that song
+                    if (backend.playback.currentTrackPath) {
+                        // Just toggle the current song's state without specifying a path
+                        backend.playback.toggle_playback("");
+                    } else
+                    // Otherwise start playing the selected song
+                    if (backend.library.songModel.selectedSongIndex !== -1) {
+                        let songPath = backend.library.songModel.data(backend.library.songModel.index(backend.library.songModel.selectedSongIndex, 0), Qt.UserRole + 4);
+                        backend.playback.toggle_playback(songPath);
+                    }
+                }
+            }
+
+            Button {
+                id: skipForwardButton
+                text: qsTr("Forward")
+                onClicked: {
+                    backend.playback.skip_forward();
+                }
             }
         }
     }

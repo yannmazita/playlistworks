@@ -56,6 +56,8 @@ class PlaybackService(QObject):
     durationChanged = Signal(int)  # Duration in ms
     repeatModeChanged = Signal(int)
     shuffleModeChanged = Signal(bool)
+    volumeChanged = Signal(float)
+    muteStateChanged = Signal(bool)
 
     def __init__(self, library: MusicLibrary):
         """
@@ -91,6 +93,10 @@ class PlaybackService(QObject):
 
         self._position = 0
         self._duration = 0
+
+        self._volume = 1.0
+        self._muted = False
+        self._pre_mute_volume = 1.0
 
         # Set up a timer to poll position during playback
         self._position_timer = None
@@ -182,6 +188,68 @@ class PlaybackService(QObject):
         fset=set_repeat_mode,
         notify=repeatModeChanged,
     )
+
+    def get_volume(self):
+        return self._volume
+
+    @Slot(float)  # type: ignore
+    def set_volume(self, volume: float):
+        """
+        Set the playback volume.
+
+        Args:
+            volume: Volume level (0.0 to 1.0)
+        """
+        volume = max(0.0, min(1.0, volume))  # Clamp volume between 0 and 1
+
+        if self._volume != volume:
+            self._volume = volume
+            if not self._muted:
+                self.player.set_property("volume", volume)
+            self.volumeChanged.emit(volume)
+            logger.info(f"Volume set to: {volume:.2f}")
+
+    volume = Property(
+        float,
+        fget=get_volume,  # type: ignore
+        fset=set_volume,
+        notify=volumeChanged,
+    )
+
+    def get_muted(self):
+        return self._muted
+
+    def set_muted(self, muted: bool):
+        """
+        Set the mute state.
+
+        Args:
+            muted: True to mute, False to unmute
+        """
+        if self._muted != muted:
+            self._muted = muted
+
+            if muted:
+                # Store current volume before muting
+                self._pre_mute_volume = self._volume
+                self.player.set_property("volume", 0.0)
+            else:
+                # Restore previous volume
+                self.player.set_property("volume", self._volume)
+
+            self.muteStateChanged.emit(muted)
+            logger.info(f"{'Muted' if muted else 'Unmuted'} audio")
+
+    isMuted = Property(
+        bool,
+        fget=get_muted,  # type: ignore
+        fset=set_muted,
+        notify=muteStateChanged,
+    )
+
+    def toggle_mute(self):
+        """Toggle between muted and unmuted states."""
+        self.set_muted(not self._muted)
 
     def _run_main_loop(self):
         """Run the GLib main loop for GStreamer message processing"""
