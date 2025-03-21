@@ -166,7 +166,6 @@ class PlaybackService(QObject):
     def get_repeat_mode(self):
         return self._repeat_mode
 
-    @Slot(int)  # type: ignore
     def set_repeat_mode(self, mode: int):
         if mode not in (
             self.REPEAT_OFF,

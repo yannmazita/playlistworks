@@ -45,7 +45,7 @@ Rectangle {
 
         onRepeatModeChanged: {
             // Update repeat button and menu selection
-            switch (repeatMode) {
+            switch (backend.playback.repeatMode) {
             case repeatAll:
                 repeatButton.checked = true;
                 repeatAllOption.checked = true;
@@ -122,9 +122,9 @@ Rectangle {
                     onClicked: {
                         // Toggle between repeatOff and the active repeat mode
                         if (backend.playback.repeatMode === repeatOff) {
-                            backend.playback.set_repeat_mode(getActiveRepeatMode());
+                            backend.playback.repeatMode = getActiveRepeatMode();
                         } else {
-                            backend.playback.set_repeat_mode(repeatOff);
+                            backend.playback.repeatMode = repeatOff;
                         }
                     }
                 }
@@ -151,7 +151,7 @@ Rectangle {
                             ButtonGroup.group: repeatGroup
 
                             onTriggered: {
-                                backend.playback.set_repeat_mode(repeatAll);
+                                backend.playback.repeatMode = repeatAll;
                             }
                         }
 
@@ -162,7 +162,7 @@ Rectangle {
                             ButtonGroup.group: repeatGroup
 
                             onTriggered: {
-                                backend.playback.set_repeat_mode(repeatTrack);
+                                backend.playback.repeatMode = repeatTrack;
                             }
                         }
 
@@ -173,7 +173,7 @@ Rectangle {
                             ButtonGroup.group: repeatGroup
 
                             onTriggered: {
-                                backend.playback.set_repeat_mode(repeatOneSong);
+                                backend.playback.repeatMode = repeatOneSong;
                             }
                         }
                     }
@@ -209,6 +209,5 @@ Rectangle {
                 font.italic: true
             }
         }
-
     }
 }
