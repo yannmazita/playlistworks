@@ -19,6 +19,10 @@ Column {
         return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
     }
 
+    function getSourceModel() {
+        return backend.library.currentSongModel;
+    }
+
     Component.onCompleted: {
         playButton.text = qsTr("Play");
     }
@@ -167,7 +171,7 @@ Column {
                     } else
                     // Otherwise start playing the selected song
                     if (backend.library.songModel.selectedSongIndex !== -1) {
-                        let songPath = backend.library.songModel.data(backend.library.songModel.index(backend.library.songModel.selectedSongIndex, 0), Qt.UserRole + 4);
+                        let songPath = getSourceModel().data(backend.library.songModel.index(getSourceModel().selectedSongIndex, 0), getSourceModel().pathRole);
                         backend.playback.toggle_playback(songPath);
                     }
                 }

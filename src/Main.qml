@@ -37,6 +37,13 @@ ApplicationWindow {
                 }
             }
             Action {
+                text: qsTr("Settings")
+                onTriggered: {
+                    //onTriggered: settingsDialog.open();
+                    console.log("Clicked on settings");
+                }
+            }
+            Action {
                 text: qsTr("Quit")
                 onTriggered: Qt.quit()
             }
@@ -76,7 +83,7 @@ ApplicationWindow {
                 playlistId: {
                     let currentIndex = backend.library.playlistSelectionModel.currentIndex;
                     if (currentIndex.valid) {
-                        return backend.library.playlistModel.data(currentIndex, Qt.UserRole + 2) || -1;
+                        return backend.library.playlistModel.data(currentIndex, backend.playlistModel.idRole) || -1;
                     }
                     return -1;
                 }

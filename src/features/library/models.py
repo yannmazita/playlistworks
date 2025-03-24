@@ -24,10 +24,56 @@ logger = logging.getLogger(__name__)
 
 
 class SongModel(QAbstractTableModel):
+    TitleRole = Qt.UserRole + 1  # type: ignore
+    ArtistRole = Qt.UserRole + 2  # type: ignore
+    AlbumRole = Qt.UserRole + 3  # type: ignore
+    PathRole = Qt.UserRole + 4  # type: ignore
+    SongIdRole = Qt.UserRole + 5  # type: ignore
+
     def __init__(self, repository: SongsRepository):
         super().__init__()
         self._repository = repository
         self._songs: list[Song] = []
+
+    def get_path_role(self):
+        return SongModel.PathRole
+
+    pathRole = Property(
+        int,
+        fget=get_path_role,  # type: ignore
+    )
+
+    # def get_song_id_role(self):
+    #    return SongModel.SongIdRole
+
+    # SongIdRole = Property(
+    #    int,
+    #    fget=get_song_id_role,  # type: ignore
+    # )
+
+    def get_title_role(self):
+        return SongModel.TitleRole
+
+    titleRole = Property(
+        int,
+        fget=get_title_role,  # type: ignore
+    )
+
+    def get_artist_role(self):
+        return SongModel.ArtistRole
+
+    artistRole = Property(
+        int,
+        fget=get_artist_role,  # type: ignore
+    )
+
+    def get_album_role(self):
+        return SongModel.AlbumRole
+
+    albumRole = Property(
+        int,
+        fget=get_album_role,  # type: ignore
+    )
 
     def rowCount(
         self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
@@ -59,18 +105,18 @@ class SongModel(QAbstractTableModel):
             elif index.column() == 2:
                 value = song.get_tag_display("ALBUM")
                 return value
-        elif role == Qt.UserRole + 1:  # type: ignore
+        elif role == self.TitleRole:
             value = song.get_tag_display("TITLE")
             return value
-        elif role == Qt.UserRole + 2:  # type: ignore
+        elif role == self.ArtistRole:
             value = song.get_tag_display("ARTIST")
             return value
-        elif role == Qt.UserRole + 3:  # type: ignore
+        elif role == self.AlbumRole:
             value = song.get_tag_display("ALBUM")
             return value
-        elif role == Qt.UserRole + 4:  # type: ignore
+        elif role == self.PathRole:
             return song.path
-        elif role == Qt.UserRole + 5:  # type: ignore
+        elif role == self.SongIdRole:
             return str(song.id)
         else:
             return None
@@ -90,10 +136,10 @@ class SongModel(QAbstractTableModel):
         roles = {
             Qt.DisplayRole: b"display",  # type: ignore
             # Qt.EditRole: b"edit",  # type: ignore
-            Qt.UserRole + 1: b"title",  # type: ignore
-            Qt.UserRole + 2: b"artist",  # type: ignore
-            Qt.UserRole + 4: b"path",  # type: ignore
-            Qt.UserRole + 5: b"songId",  # type: ignore
+            self.TitleRole: b"title",
+            self.ArtistRole: b"artist",
+            self.PathRole: b"path",
+            self.SongIdRole: b"songId",
         }
         return roles
 
@@ -113,6 +159,38 @@ class PlaylistModel(QAbstractTableModel):
         super().__init__()
         self._playlists_repository = playlists_repository
         self._playlists: list[Playlist] = []
+
+    def get_name_role(self):
+        return PlaylistModel.NameRole
+
+    nameRole = Property(
+        int,
+        fget=get_name_role,  # type: ignore
+    )
+
+    def get_id_role(self):
+        return PlaylistModel.IdRole
+
+    idRole = Property(
+        int,
+        fget=get_id_role,  # type: ignore
+    )
+
+    def get_is_dynamic_role(self):
+        return PlaylistModel.IsDynamicRole
+
+    isDynamicRole = Property(
+        int,
+        fget=get_is_dynamic_role,  # type: ignore
+    )
+
+    def get_query_role(self):
+        return PlaylistModel.QueryRole
+
+    queryRole = Property(
+        int,
+        fget=get_query_role,  # type: ignore
+    )
 
     def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()):
         return len(self._playlists)

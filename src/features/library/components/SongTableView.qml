@@ -59,9 +59,10 @@ Item {
                 }
                 onDoubleClicked: {
                     let modelIndex = getSourceModel().index(row, 0);
+                    let pathRole = getSourceModel().pathRole;
                     backend.library.setCurrentIndex(modelIndex);
                     songTableContainer.selectedRow = row;
-                    let songPath = getSourceModel().data(modelIndex, Qt.UserRole + 4);
+                    let songPath = getSourceModel().data(modelIndex, pathRole);
                     backend.playback.toggle_playback(songPath);
                 }
             }
