@@ -43,13 +43,13 @@ class SongModel(QAbstractTableModel):
         fget=get_path_role,  # type: ignore
     )
 
-    # def get_song_id_role(self):
-    #    return SongModel.SongIdRole
+    def get_song_id_role(self):
+        return SongModel.SongIdRole
 
-    # SongIdRole = Property(
-    #    int,
-    #    fget=get_song_id_role,  # type: ignore
-    # )
+    songIdRole = Property(
+        int,
+        fget=get_song_id_role,  # type: ignore
+    )
 
     def get_title_role(self):
         return SongModel.TitleRole

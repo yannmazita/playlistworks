@@ -2,5 +2,6 @@ module common.components
 HelpDialog 1.0 HelpDialog.qml
 LibraryDirectoryDialog 1.0 LibraryDirectoryDialog.qml
 ErrorDialog 1.0 ErrorDialog.qml
+SettingsDialog 1.0 SettingsDialog.qml
 StatusBar 1.0 StatusBar.qml
 SearchBar 1.0 SearchBar.qml
