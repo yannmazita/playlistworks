@@ -30,10 +30,26 @@ class SongModel(QAbstractTableModel):
     PathRole = Qt.UserRole + 4  # type: ignore
     SongIdRole = Qt.UserRole + 5  # type: ignore
 
+    TITLE_COLUMN = 0
+    ARTIST_COLUMN = 1
+    ALBUM_COLUMN = 2
+
+    visibleColumnsChanged = Signal()
+
     def __init__(self, repository: SongsRepository):
         super().__init__()
         self._repository = repository
         self._songs: list[Song] = []
+        self._visible_columns = [
+            self.TITLE_COLUMN,
+            self.ARTIST_COLUMN,
+            self.ALBUM_COLUMN,
+        ]
+        self._column_headers = {
+            self.TITLE_COLUMN: "Title",
+            self.ARTIST_COLUMN: "Artist",
+            self.ALBUM_COLUMN: "Album",
+        }
 
     def get_path_role(self):
         return SongModel.PathRole
@@ -75,6 +91,51 @@ class SongModel(QAbstractTableModel):
         fget=get_album_role,  # type: ignore
     )
 
+    def get_visible_columns(self) -> list[int]:
+        return self._visible_columns
+
+    def set_visible_columns(self, columns: list[int]):
+        valid_columns = [col for col in columns if col in self._column_headers]
+
+        if valid_columns != self._visible_columns:
+            self.beginResetModel()
+            self._visible_columns = valid_columns
+            self.endResetModel()
+            self.visibleColumnsChanged.emit()
+
+    visibleColumns = Property(
+        "QVariantList",
+        fget=get_visible_columns,  # type: ignore
+        fset=set_visible_columns,
+        notify=visibleColumnsChanged,
+    )
+
+    def get_available_columns_with_ids(self):
+        columns = []
+        for column_id, column_name in self._column_headers.items():
+            columns.append({"id": column_id, "name": column_name})
+        logger.debug(columns)
+        return columns
+
+    availableColumns = Property(
+        "QVariantList",
+        fget=get_available_columns_with_ids,  # type: ignore
+        fset=None,
+        notify=None,
+    )
+
+    @Slot(str)  # type: ignore
+    def isColumnVisible(self, column_name: str) -> bool:
+        column_id = next(
+            (
+                key
+                for key, value in self._column_headers.items()
+                if value == column_name
+            ),
+            None,
+        )
+        return column_id is not None and column_id in self._visible_columns
+
     def rowCount(
         self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
     ) -> int:
@@ -83,7 +144,7 @@ class SongModel(QAbstractTableModel):
     def columnCount(
         self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()
     ) -> int:
-        return 3
+        return len(self._visible_columns)
 
     def data(
         self,
@@ -96,15 +157,14 @@ class SongModel(QAbstractTableModel):
         song = self._songs[index.row()]
 
         if role == Qt.DisplayRole:  # type: ignore
-            if index.column() == 0:
-                value = song.get_tag_display("TITLE")
-                return value
-            elif index.column() == 1:
-                value = song.get_tag_display("ARTIST")
-                return value
-            elif index.column() == 2:
-                value = song.get_tag_display("ALBUM")
-                return value
+            column_id = self._visible_columns[index.column()]
+
+            if column_id == self.TITLE_COLUMN:
+                return song.get_tag_display("TITLE")
+            elif column_id == self.ARTIST_COLUMN:
+                return song.get_tag_display("ARTIST")
+            elif column_id == self.ALBUM_COLUMN:
+                return song.get_tag_display("ALBUM")
         elif role == self.TitleRole:
             value = song.get_tag_display("TITLE")
             return value
@@ -124,12 +184,9 @@ class SongModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole:  # type: ignore
             if orientation == Qt.Horizontal:  # type: ignore
-                if section == 0:
-                    return "Title"
-                elif section == 1:
-                    return "Artist"
-                elif section == 2:
-                    return "Album"
+                if 0 <= section < len(self._visible_columns):
+                    column_id = self._visible_columns[section]
+                    return self._column_headers.get(column_id, "")
         return None
 
     def roleNames(self):

@@ -22,6 +22,9 @@ ApplicationWindow {
     ErrorDialog {
         id: errorDialog
     }
+    SettingsDialog {
+        id: settingsDialog
+    }
 
     menuBar: MenuBar {
         Menu {
@@ -39,8 +42,7 @@ ApplicationWindow {
             Action {
                 text: qsTr("Settings")
                 onTriggered: {
-                    //onTriggered: settingsDialog.open();
-                    console.log("Clicked on settings");
+                    onTriggered: settingsDialog.open();
                 }
             }
             Action {
