@@ -293,7 +293,7 @@ class SQLGenerator:
             return f"NOT ({expr_sql})", expr_params
 
         elif node_type == "FIELD":
-            field = node["field"]
+            field = node["field"].lower()  # Case-insensitive field names
             value = node["value"]
             operator = node["operator"]
 
@@ -326,8 +326,8 @@ class SQLGenerator:
                         # Not a valid number
                         return "1=0", []  # Will never match
             else:
-                # For unknown fields
-                field_expr = f"json_extract(tags, '$.{field}')"
+                # For unknown fields, default to searching tags with LIKE
+                field_expr = f"json_extract(tags, '$.{field.upper()}')"
                 return f"{field_expr} LIKE ?", [f"%{value}%"]
 
         elif node_type == "TERM":
