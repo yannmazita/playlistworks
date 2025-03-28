@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 
 Item {
     id: songTableContainer
@@ -26,9 +27,21 @@ Item {
         }
     }
 
+    HorizontalHeaderView {
+        id: horizontalHeader
+        syncView: songTableRoot
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        clip: true
+    }
+
     TableView {
         id: songTableRoot
-        anchors.fill: parent
+        anchors.top: horizontalHeader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         clip: true
 
         model: backend.library.currentSongModel
@@ -36,7 +49,7 @@ Item {
 
         delegate: Rectangle {
             required property int row
-            implicitWidth: Math.max(100, songTableRoot.width / 3)
+            implicitWidth: 100
             implicitHeight: 40
 
             color: row === songTableContainer.selectedRow ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")
@@ -46,6 +59,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 10
+                width: parent.width - 20
                 text: display
                 elide: Text.ElideRight
             }
@@ -55,13 +69,11 @@ Item {
                 onClicked: {
                     let modelIndex = getSourceModel().index(row, 0);
                     backend.library.setCurrentIndex(modelIndex);
-                    songTableContainer.selectedRow = row;
                 }
                 onDoubleClicked: {
                     let modelIndex = getSourceModel().index(row, 0);
                     let pathRole = getSourceModel().pathRole;
                     backend.library.setCurrentIndex(modelIndex);
-                    songTableContainer.selectedRow = row;
                     let songPath = getSourceModel().data(modelIndex, pathRole);
                     backend.playback.toggle_playback(songPath);
                 }

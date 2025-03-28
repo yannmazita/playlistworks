@@ -29,10 +29,35 @@ class SongModel(QAbstractTableModel):
     AlbumRole = Qt.UserRole + 3  # type: ignore
     PathRole = Qt.UserRole + 4  # type: ignore
     SongIdRole = Qt.UserRole + 5  # type: ignore
+    TrackNumRole = Qt.UserRole + 6  # type: ignore
+    DiscNumRole = Qt.UserRole + 7  # type: ignore
+    GenreRole = Qt.UserRole + 8  # type: ignore
+    DescriptionRole = Qt.UserRole + 9  # type: ignore
+    AlbumArtistRole = Qt.UserRole + 10  # type: ignore
+    ComposerRole = Qt.UserRole + 11  # type: ignore
+    ReleaseTimeRole = Qt.UserRole + 12  # type: ignore
+    BpmRole = Qt.UserRole + 13  # type: ignore
+    CommentRole = Qt.UserRole + 14  # type: ignore
+    CompilationRole = Qt.UserRole + 15  # type: ignore
+    LengthRole = Qt.UserRole + 16  # type: ignore
+    BitrateRole = Qt.UserRole + 17  # type: ignore
 
-    TITLE_COLUMN = 0
-    ARTIST_COLUMN = 1
-    ALBUM_COLUMN = 2
+    NUMTRACK_COLUMN = 0
+    TITLE_COLUMN = 1
+    ARTIST_COLUMN = 2
+    ALBUM_COLUMN = 3
+    GENRE_COLUMN = 4
+    DESCRIPTION_COLUMN = 5
+    ALBUM_ARTIST_COLUMN = 6
+    COMPOSER_COLUMN = 7
+    RELEASE_TIME_COLUMN = 8
+    DISC_NUM_COLUMN = 9
+    BPM_COLUMN = 10
+    COMMENT_COLUMN = 11
+    COMPILATION_COLUMN = 12
+    LENGTH_COLUMN = 13
+    BITRATE_COLUMN = 14
+    PATH_COLUMN = 15
 
     visibleColumnsChanged = Signal()
 
@@ -40,62 +65,132 @@ class SongModel(QAbstractTableModel):
         super().__init__()
         self._repository = repository
         self._songs: list[Song] = []
+        # Default visible columns
         self._visible_columns = [
+            self.NUMTRACK_COLUMN,
+            self.LENGTH_COLUMN,
             self.TITLE_COLUMN,
             self.ARTIST_COLUMN,
             self.ALBUM_COLUMN,
+            self.GENRE_COLUMN,
+            self.RELEASE_TIME_COLUMN,
         ]
         self._column_headers = {
+            self.NUMTRACK_COLUMN: "#",
             self.TITLE_COLUMN: "Title",
             self.ARTIST_COLUMN: "Artist",
             self.ALBUM_COLUMN: "Album",
+            self.GENRE_COLUMN: "Genre",
+            self.DESCRIPTION_COLUMN: "Description",
+            self.ALBUM_ARTIST_COLUMN: "Album Artist",
+            self.COMPOSER_COLUMN: "Composer",
+            self.RELEASE_TIME_COLUMN: "Date",
+            self.DISC_NUM_COLUMN: "Disc",
+            self.BPM_COLUMN: "BPM",
+            self.COMMENT_COLUMN: "Comment",
+            self.COMPILATION_COLUMN: "Compilation",
+            self.LENGTH_COLUMN: "Length",
+            self.BITRATE_COLUMN: "Bitrate",
+            self.PATH_COLUMN: "Path",
         }
 
     def get_path_role(self):
         return SongModel.PathRole
 
-    pathRole = Property(
-        int,
-        fget=get_path_role,  # type: ignore
-    )
+    pathRole = Property(int, fget=get_path_role)  # type: ignore
 
     def get_song_id_role(self):
         return SongModel.SongIdRole
 
-    songIdRole = Property(
-        int,
-        fget=get_song_id_role,  # type: ignore
-    )
+    songIdRole = Property(int, fget=get_song_id_role)  # type: ignore
 
     def get_title_role(self):
         return SongModel.TitleRole
 
-    titleRole = Property(
-        int,
-        fget=get_title_role,  # type: ignore
-    )
+    titleRole = Property(int, fget=get_title_role)  # type: ignore
 
     def get_artist_role(self):
         return SongModel.ArtistRole
 
-    artistRole = Property(
-        int,
-        fget=get_artist_role,  # type: ignore
-    )
+    artistRole = Property(int, fget=get_artist_role)  # type: ignore
 
     def get_album_role(self):
         return SongModel.AlbumRole
 
-    albumRole = Property(
-        int,
-        fget=get_album_role,  # type: ignore
-    )
+    albumRole = Property(int, fget=get_album_role)  # type: ignore
+
+    # --- Role Properties (New) ---
+    def get_track_num_role(self):
+        return SongModel.TrackNumRole
+
+    trackNumRole = Property(int, fget=get_track_num_role)  # type: ignore
+
+    def get_disc_num_role(self):
+        return SongModel.DiscNumRole
+
+    discNumRole = Property(int, fget=get_disc_num_role)  # type: ignore
+
+    def get_genre_role(self):
+        return SongModel.GenreRole
+
+    genreRole = Property(int, fget=get_genre_role)  # type: ignore
+
+    def get_description_role(self):
+        return SongModel.DescriptionRole
+
+    descriptionRole = Property(int, fget=get_description_role)  # type: ignore
+
+    def get_album_artist_role(self):
+        return SongModel.AlbumArtistRole
+
+    albumArtistRole = Property(int, fget=get_album_artist_role)  # type: ignore
+
+    def get_composer_role(self):
+        return SongModel.ComposerRole
+
+    composerRole = Property(int, fget=get_composer_role)  # type: ignore
+
+    def get_release_time_role(self):
+        return SongModel.ReleaseTimeRole
+
+    releaseTimeRole = Property(int, fget=get_release_time_role)  # type: ignore
+
+    def get_bpm_role(self):
+        return SongModel.BpmRole
+
+    bpmRole = Property(int, fget=get_bpm_role)  # type: ignore
+
+    def get_comment_role(self):
+        return SongModel.CommentRole
+
+    commentRole = Property(int, fget=get_comment_role)  # type: ignore
+
+    def get_compilation_role(self):
+        return SongModel.CompilationRole
+
+    compilationRole = Property(int, fget=get_compilation_role)  # type: ignore
+
+    def get_length_role(self):
+        return SongModel.LengthRole
+
+    lengthRole = Property(int, fget=get_length_role)  # type: ignore
+
+    def get_bitrate_role(self):
+        return SongModel.BitrateRole
+
+    bitrateRole = Property(int, fget=get_bitrate_role)  # type: ignore
 
     def get_visible_columns(self) -> list[int]:
         return self._visible_columns
 
     def set_visible_columns(self, columns: list[int]):
-        valid_columns = [col for col in columns if col in self._column_headers]
+        try:
+            int_columns = [int(c) for c in columns]
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid data type received for visible columns: {columns}")
+            return
+
+        valid_columns = [col for col in int_columns if col in self._column_headers]
 
         if valid_columns != self._visible_columns:
             self.beginResetModel()
@@ -112,7 +207,9 @@ class SongModel(QAbstractTableModel):
 
     def get_available_columns_with_ids(self):
         columns = []
-        for column_id, column_name in self._column_headers.items():
+        sorted_ids = sorted(self._column_headers.keys())
+        for column_id in sorted_ids:
+            column_name = self._column_headers[column_id]
             columns.append({"id": column_id, "name": column_name})
         return columns
 
@@ -120,10 +217,10 @@ class SongModel(QAbstractTableModel):
         "QVariantList",
         fget=get_available_columns_with_ids,  # type: ignore
         fset=None,
-        notify=None,
+        constant=True,
     )
 
-    @Slot(str)  # type: ignore
+    @Slot(str, result=bool)  # type: ignore
     def isColumnVisible(self, column_name: str) -> bool:
         column_id = next(
             (
@@ -145,42 +242,141 @@ class SongModel(QAbstractTableModel):
     ) -> int:
         return len(self._visible_columns)
 
+    def _format_length(self, seconds: float) -> str:
+        """Helper to format seconds to MM:SS"""
+        if seconds is None or not isinstance(seconds, (int, float)) or seconds < 0:
+            return ""
+        try:
+            secs = int(seconds)
+            mins, secs = divmod(secs, 60)
+            return f"{mins:01d}:{secs:02d}"
+        except Exception:
+            logger.warning(f"Could not format length: {seconds}", exc_info=True)
+            return ""
+
+    def _parse_track_disc_num(self, value_str: str) -> str:
+        """Helper to parse 'X/Y' and return 'X'"""
+        if not value_str:
+            return ""
+        return value_str.split("/")[0].strip()
+
     def data(
         self,
         index: QModelIndex | QPersistentModelIndex,
         role=Qt.DisplayRole,  # type: ignore
     ) -> Any | None:
-        if not index.isValid():
-            logger.warning("Invalid index in data method")
+        if not index.isValid() or index.row() >= len(self._songs):
             return None
-        song = self._songs[index.row()]
 
-        if role == Qt.DisplayRole:  # type: ignore
-            column_id = self._visible_columns[index.column()]
+        try:
+            song = self._songs[index.row()]
+            tag_val: str | None = None  # To store intermediate tag lookups
 
-            if column_id == self.TITLE_COLUMN:
+            if role == Qt.DisplayRole:  # type: ignore
+                if not (0 <= index.column() < len(self._visible_columns)):
+                    logger.warning(
+                        f"Invalid column index {index.column()} for visible columns"
+                    )
+                    return None
+                column_id = self._visible_columns[index.column()]
+
+                if column_id == self.NUMTRACK_COLUMN:
+                    tag_val = song.get_tag_display("TRACK_NUM")
+                    return self._parse_track_disc_num(tag_val)
+                elif column_id == self.TITLE_COLUMN:
+                    return song.get_tag_display("TITLE")
+                elif column_id == self.ARTIST_COLUMN:
+                    return song.get_tag_display("ARTIST")
+                elif column_id == self.ALBUM_COLUMN:
+                    return song.get_tag_display("ALBUM")
+                elif column_id == self.GENRE_COLUMN:
+                    return song.get_tag_display("GENRE")
+                elif column_id == self.DESCRIPTION_COLUMN:
+                    return song.get_tag_display("DESCRIPTION")
+                elif column_id == self.ALBUM_ARTIST_COLUMN:
+                    return song.get_tag_display("ALBUM_ARTIST")
+                elif column_id == self.COMPOSER_COLUMN:
+                    return song.get_tag_display("COMPOSER")
+                elif column_id == self.RELEASE_TIME_COLUMN:
+                    return song.get_tag_display("RELEASE_TIME")
+                elif column_id == self.DISC_NUM_COLUMN:
+                    tag_val = song.get_tag_display("DISC_NUM")
+                    return self._parse_track_disc_num(tag_val)
+                elif column_id == self.BPM_COLUMN:
+                    return song.get_tag_display("BPM")
+                elif column_id == self.COMMENT_COLUMN:
+                    return song.get_tag_display("COMMENT")
+                elif column_id == self.COMPILATION_COLUMN:
+                    return song.get_tag_display("COMPILATION")
+                elif column_id == self.LENGTH_COLUMN:
+                    return self._format_length(song.fileprops.length)
+                elif column_id == self.BITRATE_COLUMN:
+                    br = song.fileprops.bitrate
+                    return f"{br} kbps" if br else ""
+                elif column_id == self.PATH_COLUMN:
+                    return song.path
+                else:
+                    # Should not happen
+                    logger.warning(f"Unhandled visible column ID: {column_id}")
+                    return None
+
+            elif role == self.TitleRole:
                 return song.get_tag_display("TITLE")
-            elif column_id == self.ARTIST_COLUMN:
+            elif role == self.ArtistRole:
                 return song.get_tag_display("ARTIST")
-            elif column_id == self.ALBUM_COLUMN:
+            elif role == self.AlbumRole:
                 return song.get_tag_display("ALBUM")
-        elif role == self.TitleRole:
-            value = song.get_tag_display("TITLE")
-            return value
-        elif role == self.ArtistRole:
-            value = song.get_tag_display("ARTIST")
-            return value
-        elif role == self.AlbumRole:
-            value = song.get_tag_display("ALBUM")
-            return value
-        elif role == self.PathRole:
-            return song.path
-        elif role == self.SongIdRole:
-            return str(song.id)
-        else:
+            elif role == self.PathRole:
+                return song.path
+            elif role == self.SongIdRole:
+                return str(song.id)
+            elif role == self.TrackNumRole:
+                tag_val = song.get_tag_display("TRACK_NUM")
+                return self._parse_track_disc_num(tag_val)
+            elif role == self.DiscNumRole:
+                tag_val = song.get_tag_display("DISC_NUM")
+                return self._parse_track_disc_num(tag_val)
+            elif role == self.GenreRole:
+                return song.get_tag_display("GENRE")
+            elif role == self.DescriptionRole:
+                return song.get_tag_display("DESCRIPTION")
+            elif role == self.AlbumArtistRole:
+                return song.get_tag_display("ALBUM_ARTIST")
+            elif role == self.ComposerRole:
+                return song.get_tag_display("COMPOSER")
+            elif role == self.ReleaseTimeRole:
+                return song.get_tag_display("RELEASE_TIME")
+            elif role == self.BpmRole:
+                tag_val = song.get_tag_display("BPM")
+                try:
+                    return (
+                        str(round(float(tag_val))) if tag_val else ""
+                    )  # Return rounded string
+                except ValueError:
+                    return tag_val  # Return original string if not a number
+            elif role == self.CommentRole:
+                return song.get_tag_display("COMMENT")
+            elif role == self.CompilationRole:
+                tag_val = song.get_tag_display("COMPILATION")
+                return "Yes" if tag_val == "1" else "No"
+            elif role == self.LengthRole:
+                return self._format_length(song.fileprops.length)
+            elif role == self.BitrateRole:
+                br = song.fileprops.bitrate
+                return f"{br} kbps" if br else ""
+            else:
+                # Unknown role
+                return None
+
+        except IndexError:
+            logger.error(f"Index out of range in data method: row {index.row()}")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving data for index {index}: {e}", exc_info=True)
             return None
 
     def headerData(self, section, orientation, role):
+        # Making sure section index is valid for the *visible* columns
         if role == Qt.DisplayRole:  # type: ignore
             if orientation == Qt.Horizontal:  # type: ignore
                 if 0 <= section < len(self._visible_columns):
@@ -189,15 +385,30 @@ class SongModel(QAbstractTableModel):
         return None
 
     def roleNames(self):
+        # QT expects bytes
         roles = {
             Qt.DisplayRole: b"display",  # type: ignore
-            # Qt.EditRole: b"edit",  # type: ignore
             self.TitleRole: b"title",
             self.ArtistRole: b"artist",
+            self.AlbumRole: b"album",
             self.PathRole: b"path",
             self.SongIdRole: b"songId",
+            # --- New Roles ---
+            self.TrackNumRole: b"trackNum",
+            self.DiscNumRole: b"discNum",
+            self.GenreRole: b"genre",
+            self.DescriptionRole: b"description",
+            self.AlbumArtistRole: b"albumArtist",
+            self.ComposerRole: b"composer",
+            self.ReleaseTimeRole: b"releaseTime",
+            self.BpmRole: b"bpm",
+            self.CommentRole: b"comment",
+            self.CompilationRole: b"compilation",
+            self.LengthRole: b"length",
+            self.BitrateRole: b"bitrate",
         }
-        return roles
+        # Filter out None values if any role constants were somehow None
+        return {k: v for k, v in roles.items() if k is not None}
 
     def setSongs(self, songs: list[Song]):
         self.beginResetModel()
