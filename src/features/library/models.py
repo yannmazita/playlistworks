@@ -114,7 +114,6 @@ class SongModel(QAbstractTableModel):
         columns = []
         for column_id, column_name in self._column_headers.items():
             columns.append({"id": column_id, "name": column_name})
-        logger.debug(columns)
         return columns
 
     availableColumns = Property(

@@ -11,6 +11,7 @@ def get_db_connection() -> sqlite3.Connection:
     """Creates a database connection to the SQLite database."""
     try:
         conn = sqlite3.connect(settings.database_filename)
+        conn.set_trace_callback(print)
         conn.row_factory = (
             sqlite3.Row
         )  # SQLite returns results as Row objects with named-field access
@@ -86,6 +87,9 @@ def initialize_database(conn: sqlite3.Connection):
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_tags_title ON songs (json_extract(tags, '$.TITLE'))"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tags_release_time ON songs (json_extract(tags, '$.RELEASE_TIME'))"
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_tags_genre ON songs (json_extract(tags, '$.GENRE'))"
