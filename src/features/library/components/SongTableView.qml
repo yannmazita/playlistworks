@@ -46,10 +46,54 @@ Item {
 
         model: backend.library.currentSongModel
         selectionModel: backend.library.currentSelectionModel
+        columnWidthProvider: function (column) {
+            console.log("--- columnWidthProvider --- Column:", column); // Keep if needed for debugging resize etc.
+            if (!model || !model.hasOwnProperty("visibleColumns") || !model.hasOwnProperty("columnWidths")) {
+                console.warn("Model or required properties (visibleColumns/columnWidths) not available.");
+                return 80; // Default width
+            }
+
+            let rawVisibleCols = model.visibleColumns;
+            let widthMap = model.columnWidths;
+
+            let jsVisibleCols;
+            try {
+                jsVisibleCols = Array.from(rawVisibleCols);
+            } catch (e) {
+                console.error("Failed to convert visibleColumns to JS Array:", e);
+                console.log("Raw visibleColumns was:", rawVisibleCols, "Type:", typeof rawVisibleCols);
+                jsVisibleCols = [];
+            }
+
+            if (!Array.isArray(jsVisibleCols) || typeof widthMap !== 'object' || widthMap === null) {
+                console.warn(">>> Invalid type detected! jsVisibleCols isArray:", Array.isArray(jsVisibleCols), "columnWidths typeof:", typeof widthMap);
+                return 80;
+            }
+
+            if (column >= 0 && column < jsVisibleCols.length) {
+                let absoluteColumnId = jsVisibleCols[column];
+                let key = String(absoluteColumnId);
+
+                if (widthMap.hasOwnProperty(key)) {
+                    let width = widthMap[key];
+                    return (typeof width === 'number' && width > 0) ? width : 80;
+                } else {
+                    // This might happen if visibleColumns contains an ID not in columnWidths (shouldn't ideally)
+                    console.log("No width defined in model.columnWidths for column ID:", absoluteColumnId, "(View column:", column, ", Key:", key + ")");
+                }
+            } else {
+                // This might happen briefly during model resets or if column index is somehow invalid
+                console.warn("Column index out of bounds:", column, "Visible columns count:", jsVisibleCols.length);
+            }
+
+            // Default width if specific width not found or index out of bounds
+            return 80;
+        }
+        onWidthChanged: songTableRoot.forceLayout()
 
         delegate: Rectangle {
             required property int row
-            implicitWidth: 100
+            implicitWidth: songTableRoot.columnWidthProvider(column)
             implicitHeight: 40
 
             color: row === songTableContainer.selectedRow ? "#d0e8ff" : (row % 2 ? "#f0f0f0" : "white")

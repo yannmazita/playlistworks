@@ -53,11 +53,14 @@ Work in progress! Very early stage and actively developed.
 - **GUI**: 🕙
     *   Main window:  ✅
     *   Sorting: ❌
-    *   Aesthetic refinements: ❌
 
 ## Goals
-- Robust and fast dynamic playlist creation using audio file metadata
-- Desktop and Mobile ports
+- Fast dynamic playlist creation
+- Desktop and iOS/Android versions
+
+## Known bugs
+- Column width is fixed
+- No tracking of file changes after library scan
 
 ## Contributing
 

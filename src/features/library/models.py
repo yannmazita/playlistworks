@@ -74,6 +74,8 @@ class SongModel(QAbstractTableModel):
             self.ALBUM_COLUMN,
             self.GENRE_COLUMN,
             self.RELEASE_TIME_COLUMN,
+            self.DESCRIPTION_COLUMN,
+            self.BITRATE_COLUMN,
         ]
         self._column_headers = {
             self.NUMTRACK_COLUMN: "#",
@@ -92,6 +94,24 @@ class SongModel(QAbstractTableModel):
             self.LENGTH_COLUMN: "Length",
             self.BITRATE_COLUMN: "Bitrate",
             self.PATH_COLUMN: "Path",
+        }
+        self._column_widths = {
+            self.NUMTRACK_COLUMN: 35,
+            self.TITLE_COLUMN: 450,
+            self.ARTIST_COLUMN: 380,
+            self.ALBUM_COLUMN: 380,
+            self.GENRE_COLUMN: 650,
+            self.DESCRIPTION_COLUMN: 400,
+            self.ALBUM_ARTIST_COLUMN: 380,
+            self.COMPOSER_COLUMN: 150,
+            self.RELEASE_TIME_COLUMN: 50,
+            self.DISC_NUM_COLUMN: 50,
+            self.BPM_COLUMN: 60,
+            self.COMMENT_COLUMN: 400,
+            self.COMPILATION_COLUMN: 60,
+            self.LENGTH_COLUMN: 45,
+            self.BITRATE_COLUMN: 80,
+            self.PATH_COLUMN: 400,
         }
 
     def get_path_role(self):
@@ -184,19 +204,47 @@ class SongModel(QAbstractTableModel):
         return self._visible_columns
 
     def set_visible_columns(self, columns: list[int]):
+        """
+        Sets the list of visible columns based on their absolute IDs.
+        The order in the input list determines the display order.
+        """
+        # --- DEBUG LOGGING ---
+        # Log the raw input received from QML/JS
+        logger.info(
+            f"set_visible_columns received raw input: {columns} (type: {type(columns)})"
+        )
+
         try:
+            # Attempt conversion to integers. QML might send numbers or strings.
             int_columns = [int(c) for c in columns]
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid data type received for visible columns: {columns}")
-            return
+            logger.info(f"Successfully converted input to int list: {int_columns}")
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                f"Invalid data type or value received for visible columns. Input: {columns}. Error: {e}"
+            )
+            return  # Abort if conversion fails
 
+        # Filter out any invalid column IDs that might have been sent
         valid_columns = [col for col in int_columns if col in self._column_headers]
+        if len(valid_columns) != len(int_columns):
+            logger.warning(
+                f"Filtered out invalid column IDs. Original: {int_columns}, Valid: {valid_columns}"
+            )
 
+        # Only reset the model if the final list of valid columns has actually changed
         if valid_columns != self._visible_columns:
+            logger.info(
+                f"Visible columns changing from {self._visible_columns} to {valid_columns}"
+            )
             self.beginResetModel()
             self._visible_columns = valid_columns
             self.endResetModel()
             self.visibleColumnsChanged.emit()
+            logger.info("Model reset and visibleColumnsChanged emitted.")
+        else:
+            logger.info(
+                f"No change detected in visible columns. Current: {self._visible_columns}, Received valid: {valid_columns}"
+            )
 
     visibleColumns = Property(
         "QVariantList",
@@ -218,6 +266,15 @@ class SongModel(QAbstractTableModel):
         fget=get_available_columns_with_ids,  # type: ignore
         fset=None,
         constant=True,
+    )
+
+    def get_column_widths(self) -> dict[str, int]:
+        return {str(k): v for k, v in self._column_widths.items()}
+
+    columnWidths = Property(
+        "QVariantMap",
+        fget=get_column_widths,  # type: ignore
+        constant=True,  # Todo: ability to change defaults, loading settings
     )
 
     @Slot(str, result=bool)  # type: ignore
