@@ -47,7 +47,6 @@ Item {
         model: backend.library.currentSongModel
         selectionModel: backend.library.currentSelectionModel
         columnWidthProvider: function (column) {
-            console.log("--- columnWidthProvider --- Column:", column); // Keep if needed for debugging resize etc.
             if (!model || !model.hasOwnProperty("visibleColumns") || !model.hasOwnProperty("columnWidths")) {
                 console.warn("Model or required properties (visibleColumns/columnWidths) not available.");
                 return 80; // Default width
