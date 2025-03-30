@@ -246,6 +246,7 @@ class PlaybackService(QObject):
         notify=muteStateChanged,
     )
 
+    @Slot()
     def toggle_mute(self):
         """Toggle between muted and unmuted states."""
         self.set_muted(not self._muted)
