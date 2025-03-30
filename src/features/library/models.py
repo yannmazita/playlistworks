@@ -41,6 +41,7 @@ class SongModel(QAbstractTableModel):
     CompilationRole = Qt.UserRole + 15  # type: ignore
     LengthRole = Qt.UserRole + 16  # type: ignore
     BitrateRole = Qt.UserRole + 17  # type: ignore
+    SortRole = Qt.UserRole + 100  # type: ignore
 
     NUMTRACK_COLUMN = 0
     TITLE_COLUMN = 1
@@ -200,6 +201,11 @@ class SongModel(QAbstractTableModel):
 
     bitrateRole = Property(int, fget=get_bitrate_role)  # type: ignore
 
+    def get_sort_role(self):
+        return SongModel.SortRole
+
+    sortRole = Property(int, fget=get_sort_role)  # type: ignore
+
     def get_visible_columns(self) -> list[int]:
         return self._visible_columns
 
@@ -208,14 +214,11 @@ class SongModel(QAbstractTableModel):
         Sets the list of visible columns based on their absolute IDs.
         The order in the input list determines the display order.
         """
-        # --- DEBUG LOGGING ---
-        # Log the raw input received from QML/JS
         logger.info(
             f"set_visible_columns received raw input: {columns} (type: {type(columns)})"
         )
 
         try:
-            # Attempt conversion to integers. QML might send numbers or strings.
             int_columns = [int(c) for c in columns]
             logger.info(f"Successfully converted input to int list: {int_columns}")
         except (ValueError, TypeError) as e:
@@ -317,6 +320,28 @@ class SongModel(QAbstractTableModel):
             return ""
         return value_str.split("/")[0].strip()
 
+    def _parse_num_from_tag(self, value_str: str | None) -> int | None:
+        """Helper to parse 'X' or 'X/Y' and return integer X, or None."""
+        if not value_str:
+            return None
+        try:
+            num_part = value_str.split("/")[0].strip()
+            return int(num_part) if num_part else None
+        except (ValueError, IndexError):
+            logger.debug(f"Could not parse integer from tag: {value_str}")
+            return None
+
+    def _get_sort_key_album(self, song: Song) -> str:
+        return song.get_tag_display("ALBUM") or ""
+
+    def _get_sort_key_discnum(self, song: Song) -> int:
+        # Return large number for None/invalid to sort them last
+        return self._parse_num_from_tag(song.get_tag_display("DISC_NUM")) or 9999
+
+    def _get_sort_key_tracknum(self, song: Song) -> int:
+        # Return large number for None/invalid to sort them last
+        return self._parse_num_from_tag(song.get_tag_display("TRACK_NUM")) or 9999
+
     def data(
         self,
         index: QModelIndex | QPersistentModelIndex,
@@ -326,6 +351,7 @@ class SongModel(QAbstractTableModel):
             return None
 
         try:
+            column_id = self._visible_columns[index.column()]
             song = self._songs[index.row()]
             tag_val: str | None = None  # To store intermediate tag lookups
 
@@ -335,7 +361,6 @@ class SongModel(QAbstractTableModel):
                         f"Invalid column index {index.column()} for visible columns"
                     )
                     return None
-                column_id = self._visible_columns[index.column()]
 
                 if column_id == self.NUMTRACK_COLUMN:
                     tag_val = song.get_tag_display("TRACK_NUM")
@@ -375,6 +400,54 @@ class SongModel(QAbstractTableModel):
                 else:
                     # Should not happen
                     logger.warning(f"Unhandled visible column ID: {column_id}")
+                    return None
+
+            elif role == self.SortRole:
+                if column_id == self.NUMTRACK_COLUMN:
+                    # Sort by parsed track number, default to large number if missing
+                    return self._get_sort_key_tracknum(song)
+                elif column_id == self.TITLE_COLUMN:
+                    return song.get_tag_display("TITLE") or ""
+                elif column_id == self.ARTIST_COLUMN:
+                    return song.get_tag_display("ARTIST") or ""
+                elif column_id == self.ALBUM_COLUMN:
+                    return song.get_tag_display("ALBUM") or ""
+                elif column_id == self.GENRE_COLUMN:
+                    return song.get_tag_display("GENRE") or ""
+                elif column_id == self.DESCRIPTION_COLUMN:
+                    return song.get_tag_display("DESCRIPTION") or ""
+                elif column_id == self.ALBUM_ARTIST_COLUMN:
+                    return song.get_tag_display("ALBUM_ARTIST") or ""
+                elif column_id == self.COMPOSER_COLUMN:
+                    return song.get_tag_display("COMPOSER") or ""
+                elif column_id == self.RELEASE_TIME_COLUMN:
+                    # Todo: more sophisticated sorting handling multiple formats
+                    return song.get_tag_display("RELEASE_TIME") or ""
+                elif column_id == self.DISC_NUM_COLUMN:
+                    # Sort by parsed disc number, default to large number if missing
+                    return self._get_sort_key_discnum(song)
+                elif column_id == self.BPM_COLUMN:
+                    tag_val = song.get_tag_display("BPM")
+                    try:
+                        # Sort by float BPM value, default to 0 if missing/invalid
+                        return float(tag_val) if tag_val else 0.0
+                    except (ValueError, TypeError):
+                        return 0.0  # Default sort value for non-numeric BPM
+                elif column_id == self.COMMENT_COLUMN:
+                    return song.get_tag_display("COMMENT") or ""
+                elif column_id == self.COMPILATION_COLUMN:
+                    # Sort by raw value ("1" vs others)
+                    return song.get_tag_display("COMPILATION") or "0"
+                elif column_id == self.LENGTH_COLUMN:
+                    # Sort by float length in seconds, default to 0
+                    return song.fileprops.length or 0.0
+                elif column_id == self.BITRATE_COLUMN:
+                    # Sort by integer bitrate, default to 0
+                    return song.fileprops.bitrate or 0
+                elif column_id == self.PATH_COLUMN:
+                    return song.path or ""
+                else:
+                    # Should not happen for visible columns
                     return None
 
             elif role == self.TitleRole:
@@ -450,7 +523,6 @@ class SongModel(QAbstractTableModel):
             self.AlbumRole: b"album",
             self.PathRole: b"path",
             self.SongIdRole: b"songId",
-            # --- New Roles ---
             self.TrackNumRole: b"trackNum",
             self.DiscNumRole: b"discNum",
             self.GenreRole: b"genre",
@@ -463,13 +535,27 @@ class SongModel(QAbstractTableModel):
             self.CompilationRole: b"compilation",
             self.LengthRole: b"length",
             self.BitrateRole: b"bitrate",
+            self.SortRole: b"sort",
         }
         # Filter out None values if any role constants were somehow None
         return {k: v for k, v in roles.items() if k is not None}
 
     def setSongs(self, songs: list[Song]):
         self.beginResetModel()
-        self._songs = songs
+        # Default Sort: Album -> Disc Num -> Track Num
+        try:
+            sorted_songs = sorted(
+                songs,
+                key=lambda s: (
+                    self._get_sort_key_album(s).lower(),  # Case-insensitive album sort
+                    self._get_sort_key_discnum(s),
+                    self._get_sort_key_tracknum(s),
+                ),
+            )
+            self._songs = sorted_songs
+        except Exception as e:
+            logger.error(f"Failed to apply default sort to songs: {e}", exc_info=True)
+            self._songs = songs  # Fallback to unsorted if error occurs
         self.endResetModel()
 
 
