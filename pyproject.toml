@@ -3,7 +3,7 @@ name = "playlistworks"
 version = "0.1.0"
 description = "Playlist-driven music player"
 authors = ["Yann Mazita <dev.mazita@gmail.com>"]
-license = "GPL3"
+license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
